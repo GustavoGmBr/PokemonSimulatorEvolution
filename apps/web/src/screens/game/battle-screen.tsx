@@ -22,6 +22,8 @@ import { TypedText, typingMs } from '@/components/typed-text';
 import { TrainerSpritePreview } from '@/components/sprite-preview';
 import { formOf, localFormSprite, remoteFormSprite } from '@/lib/training';
 import '@/styles/battle.css';
+import { duckRadio } from '@/lib/radio';
+import { playEffect } from '@/lib/sfx';
 
 type Mon = {
   index: number; speciesId: number; name: string; level: number; hp: number; maxHp: number;
@@ -156,6 +158,7 @@ export default function BattleScreen({ encounter, opponent, game, scene, onFinis
       ground: { x: them.x * 100, y: (them.y - 0.04) * 100 },
       onOpen: () => setDisplay((d) => ({ ...d, foeState: 'captured' })),
       onRelease: () => setDisplay((d) => ({ ...d, foeState: 'idle' })),
+      onCaught: () => { playEffect('catching'); },
     });
   }
 
@@ -252,6 +255,13 @@ export default function BattleScreen({ encounter, opponent, game, scene, onFinis
     setMenu(step.state.phase === 'ended' ? null : step.state.phase === 'replace' ? 'team' : 'main');
     if (step.state.phase !== 'ended') setMessage(step.state.phase === 'replace' ? 'Escolha o próximo Pokémon.' : `O que ${step.state.player.team[step.state.player.active]!.name} vai fazer?`);
   }
+
+  // Durante a batalha o rádio fica a 10% e a música de abertura toca no início.
+  useEffect(() => {
+    const release = duckRadio();
+    const intro = playEffect('battle');
+    return () => { intro.stop(); release(); };
+  }, []);
 
   useEffect(() => {
     if (started.current) return;

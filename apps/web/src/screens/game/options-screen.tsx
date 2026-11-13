@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Maximize, Minimize, Music, RotateCcw, SkipForward, Video } from 'lucide-react';
+import { Maximize, Minimize, Music, RotateCcw, SkipForward, Video, Volume2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { battleKeyActions, resetBattleKeys, setBattleKey, useBattleKeys, type BattleKeyAction } from '@/lib/battle-keys';
@@ -204,6 +204,18 @@ export function OptionsScreen({ reduceMotion, setReduceMotion, fullscreen, toggl
                 <Button type="button" size="sm" variant="outline" onClick={nextTrack}><SkipForward /> Próxima</Button>
               </div>
             )}
+          </Section>
+
+          <Section id="effects" title="Efeitos sonoros" description="Música de abertura da batalha, captura e Pokémon brilhante (pasta recursos/Sons/Efeitos). Durante a batalha o rádio fica a 10%.">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <label htmlFor="options-effects" className="flex items-center gap-2 text-sm font-bold"><Volume2 aria-hidden="true" className="size-4" /> Ligar os efeitos</label>
+              <Switch id="options-effects" checked={settings.effectsEnabled} onCheckedChange={(effectsEnabled) => set({ effectsEnabled })} />
+            </div>
+            <label className="grid gap-1 text-sm font-bold">
+              Volume ({Math.round(settings.effectsVolume * 100)}%)
+              <input type="range" min={0} max={100} step={5} value={Math.round(settings.effectsVolume * 100)} disabled={!settings.effectsEnabled}
+                onChange={(event) => set({ effectsVolume: Number(event.target.value) / 100 })} />
+            </label>
           </Section>
 
           <Section id="video" title="Player de vídeo" description="Um player do YouTube no canto da tela, para música, vídeos ou lives enquanto joga.">

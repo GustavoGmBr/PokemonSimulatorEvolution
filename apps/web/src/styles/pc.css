@@ -169,3 +169,4 @@
   font-size: .68rem;
   line-height: 1.5;
 }
+html[data-theme="noturno"] .pc-mark-stars[data-grade="perfect"] { color: #ff7b7b; }

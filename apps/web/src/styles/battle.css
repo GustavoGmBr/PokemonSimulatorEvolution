@@ -1,3 +1,4 @@
+/* theme-css: off — a batalha é uma cena (painéis claros sobre a arena e um fundo escuro) e fica igual em todos os temas. */
 /* Tela de batalha: arena com os painéis dos Pokémon por cima e o menu de ações embaixo. */
 .battle-overlay {
   position: fixed;
@@ -92,6 +93,7 @@
 .battle-result h2 { font-size: 1.2rem; font-weight: 800; }
 .battle-result ul { list-style: disc; padding-inline-start: 1.1rem; font-size: .9rem; }
 .battle-tools { display: flex; justify-content: flex-end; gap: .4rem; }
+.battle-tools strong { color: #e2e8f0; }
 .battle-tools button { font-size: .75rem; padding: .15rem .6rem; border-radius: .4rem; border: 1px solid #475569; background: #1e293b; color: #e2e8f0; cursor: pointer; }
 .battle-error { color: #b91c1c; font-size: .85rem; font-weight: 600; }
 

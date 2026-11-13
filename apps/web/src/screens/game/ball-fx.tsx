@@ -28,6 +28,8 @@ export interface BallPlan {
   onOpen?: () => void;
   /** A bola se abriu sozinha (o Pokémon escapou): é a hora de ele reaparecer. */
   onRelease?: () => void;
+  /** A bola fechou de vez: o Pokémon foi capturado (hora da fanfarra). */
+  onCaught?: () => void;
 }
 
 export interface BallFxHandle {
@@ -122,6 +124,7 @@ export const BallFx = forwardRef<BallFxHandle, { cell: string; className?: strin
 
       // 5. Resultado.
       if (plan.caught) {
+        plan.onCaught?.();
         for (const row of ballRows.caught) { show(row); await wait(110); if (!alive()) return; }
       } else {
         for (const row of ballRows.release) {

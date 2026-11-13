@@ -14,3 +14,5 @@
 
 .iv-list .iv-max .dex-stat-track > span { background: #d9a400; }
 .wild-iv.wild-iv-left { justify-content: flex-start; }
+html[data-theme="noturno"] .wild-stars[data-stars="4"] { color: #ff7b7b; }
+html[data-theme="noturno"] .wild-stars[data-stars="3"] { color: #5aa2ff; }

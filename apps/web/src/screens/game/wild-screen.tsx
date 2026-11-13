@@ -28,6 +28,7 @@ const BattleScreen = lazy(() => import('./battle-screen'));
 const DirectCaptureDialog = lazy(() => import('./direct-capture-dialog'));
 import '@/styles/iv.css';
 import '@/styles/wild.css';
+import { playEffect } from '@/lib/sfx';
 
 type Props = { save: JourneySave; game: GameState; change: ChangeGame };
 
@@ -543,6 +544,7 @@ export default function WildScreen({ save, game, change }: Props) {
       return text && grade ? [{ id: encounter.id, text, grade }] : [];
     });
     if (!news.length) return;
+    if (news.some((alert) => alert.grade === 'shiny')) playEffect('shiny');
     setAlerts((current) => [...current, ...news].slice(-3));
     for (const { id } of news) {
       timers.current.push(window.setTimeout(() => setAlerts((current) => current.filter((alert) => alert.id !== id)), 9000));
@@ -629,6 +631,7 @@ export default function WildScreen({ save, game, change }: Props) {
         arc: 60 + Math.abs(to.x - from.x) * 0.25, caught: thrown.caught, shakes: thrown.shakes,
         onOpen: () => { actor.dataset.capture = 'absorbed'; },
         onRelease: () => { actor.dataset.capture = 'released'; },
+        onCaught: () => { playEffect('catching'); },
       });
       if (!thrown.caught) {
         // Escapou: o Pokémon reaparece, olha para você e foge para longe.

@@ -18,6 +18,18 @@ const roleOf = (prop: string): Role | null => {
   return null;
 };
 
+/** Lê "#rgb", "#rrggbb", "#rrggbbaa", "rgb(r g b / a)" e "rgba(r, g, b, a)"; qualquer outra coisa (porcentagens em rgb) volta null. */
+function parseColor(value: string): Rgba | null {
+  if (value.startsWith('#')) return parseHex(value);
+  const parts = value.slice(value.indexOf('(') + 1, -1).trim().split(/\s*[\s,/]\s*/);
+  if (parts.length < 3 || parts.length > 4 || parts.some((part) => part.includes('%') && parts.indexOf(part) < 3)) return null;
+  const [r, g, b] = parts.slice(0, 3).map(Number) as [number, number, number];
+  const alpha = parts[3] === undefined ? 1 : parts[3].endsWith('%') ? Number(parts[3].slice(0, -1)) / 100 : Number(parts[3]);
+  if ([r, g, b, alpha].some((n) => !Number.isFinite(n))) return null;
+  const channel = (n: number) => Math.min(255, Math.max(0, Math.round(n)));
+  return { r: channel(r), g: channel(g), b: channel(b), a: Math.round(Math.min(1, Math.max(0, alpha)) * 255) };
+}
+
 function parseHex(hex: string): Rgba | null {
   let digits = hex.slice(1);
   if (digits.length === 3) digits = [...digits].map((c) => c + c).join('');
@@ -71,12 +83,29 @@ function themed(theme: string, role: Role, rgba: Rgba): string | null {
 
 export const cssThemes = ['oceano', 'vulcao', 'eletrico', 'noturno'] as const;
 
-const hexPattern = /#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3})(?![\w-])/g;
+// Cores em hexadecimal e em rgb()/rgba() (com vírgulas ou a sintaxe nova "rgb(20 28 20 / .8)").
+const colorPattern = /#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3})(?![\w-])|rgba?\(\s*\d{1,3}(?:\.\d+)?%?[\s,]+\d{1,3}(?:\.\d+)?%?[\s,]+\d{1,3}(?:\.\d+)?%?(?:\s*[,/]\s*\d*\.?\d+%?)?\s*\)/g;
 const timePattern = /(?<![\w.#-])(\d*\.?\d+)(ms|s)(?![\w-])/g;
 const durationProps = /^(animation|animation-duration|animation-delay|transition|transition-duration|transition-delay)$/;
 
+/** Uma regra com a declaração `--theme-keep: 1` também mantém as próprias cores (ex.: legenda sobre a foto). Um .css cujo primeiro comentário é `theme-css: off` fica com as cores que tem (cenas de jogo, como a batalha, que não mudam de tema). */
+const themeOff = new WeakMap<Root, boolean>();
+function isThemeOff(decl: Declaration): boolean {
+  let keep = false;
+  decl.parent?.each((node) => { if (node.type === 'decl' && node.prop === '--theme-keep') keep = true; });
+  if (keep) return true;
+  const root = decl.root();
+  let off = themeOff.get(root);
+  if (off === undefined) {
+    const first = root.first;
+    off = first?.type === 'comment' && /theme-css:\s*off/.test(first.text);
+    themeOff.set(root, off);
+  }
+  return off;
+}
+
 export function themeCss(): Plugin {
-  const used = new Map<string, { role: Role; hex: string }>();
+  const used = new Map<string, { role: Role; color: string }>();
   return {
     postcssPlugin: 'pokesim-theme-css',
     Declaration(decl: Declaration) {
@@ -91,21 +120,23 @@ export function themeCss(): Plugin {
         return;
       }
       const role = roleOf(prop);
-      if (!role) return;
-      decl.value = decl.value.replace(hexPattern, (hex) => {
-        const rgba = parseHex(hex);
-        if (!rgba) return hex;
-        const name = `${role}-${hex.slice(1).toLowerCase()}`;
-        used.set(name, { role, hex });
-        return `var(--c-${name}, ${hex})`;
+      if (!role || isThemeOff(decl)) return;
+      decl.value = decl.value.replace(colorPattern, (color) => {
+        const rgba = parseColor(color);
+        if (!rgba) return color;
+        // O nome da variável vem dos canais já lidos, então "#fff" e "rgb(255 255 255)" dividem a mesma cor de cada tema.
+        const hex = [rgba.r, rgba.g, rgba.b, rgba.a].map((n) => n.toString(16).padStart(2, '0')).join('');
+        const name = `${role}-${hex}`;
+        used.set(name, { role, color });
+        return `var(--c-${name}, ${color})`;
       });
     },
     OnceExit(root: Root, { Rule, Declaration: NewDeclaration }: Helpers) {
       if (used.size === 0) return;
       for (const theme of cssThemes) {
         const rule = new Rule({ selector: `html[data-theme="${theme}"]` });
-        for (const [name, { role, hex }] of used) {
-          const rgba = parseHex(hex);
+        for (const [name, { role, color }] of used) {
+          const rgba = parseColor(color);
           const value = rgba && themed(theme, role, rgba);
           if (value) rule.append(new NewDeclaration({ prop: `--c-${name}`, value }));
         }

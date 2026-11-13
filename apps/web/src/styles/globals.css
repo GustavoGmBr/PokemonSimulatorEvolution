@@ -89,7 +89,7 @@ html[data-theme="eletrico"] {
   --primary: #5c4a10;
   --primary-foreground: #fbf6df;
   --secondary: #ebe7cb;
-  --muted-foreground: #6e6a45;
+  --muted-foreground: #625e3a;
   --border: #dcd8b8;
   --ring: #9d8a2c;
   --sidebar: #2c2813;
@@ -281,6 +281,7 @@ html[data-theme="noturno"] {
 }
 
 .cover-caption {
+  --theme-keep: 1;
   display: flex;
   z-index: 1;
   align-items: center;
@@ -296,6 +297,7 @@ html[data-theme="noturno"] {
 }
 
 .cover-caption small {
+  --theme-keep: 1;
   display: block;
   color: #526446;
   font-size: .59rem;
@@ -304,11 +306,13 @@ html[data-theme="noturno"] {
 }
 
 .cover-caption strong {
+  --theme-keep: 1;
   display: block;
   font: 700 1.25rem/1.1 var(--font-display);
 }
 
 .cover-pin {
+  --theme-keep: 1;
   display: grid;
   place-items: center;
   width: 2.3rem;
@@ -318,7 +322,7 @@ html[data-theme="noturno"] {
 }
 
 .cover-pin svg, .cover-compass { width: 1.15rem; height: 1.15rem; }
-.cover-compass { margin-inline-start: 1rem; color: #526446; }
+.cover-compass { --theme-keep: 1; margin-inline-start: 1rem; color: #526446; }
 
 .home-footer {
   padding-block: 1rem;

@@ -37,10 +37,14 @@ export type Settings = {
   /** 0 a 1, em passos de 5%. */
   radioVolume: number;
   videoEnabled: boolean;
+  /** Efeitos sonoros (música de abertura da batalha, captura, shiny). */
+  effectsEnabled: boolean;
+  /** 0 a 1, em passos de 5%. */
+  effectsVolume: number;
 };
 
 export const defaultSettings: Settings = {
-  theme: 'auto', textSpeed: 'normal', animationSpeed: 'normal', radioEnabled: false, radioVolume: 0.5, videoEnabled: false,
+  theme: 'auto', textSpeed: 'normal', animationSpeed: 'normal', radioEnabled: false, radioVolume: 0.5, videoEnabled: false, effectsEnabled: true, effectsVolume: 0.7,
 };
 
 const storageKey = 'pokesim-evolution:settings';
@@ -57,14 +61,16 @@ export function readSettings(raw: string | null): Settings {
     const saved: unknown = JSON.parse(raw);
     if (typeof saved !== 'object' || saved === null) return defaultSettings;
     const value = saved as Record<string, unknown>;
-    const volume = typeof value.radioVolume === 'number' && Number.isFinite(value.radioVolume) ? value.radioVolume : defaultSettings.radioVolume;
+    const level = (raw: unknown, fallback: number) => Math.round(Math.min(1, Math.max(0, typeof raw === 'number' && Number.isFinite(raw) ? raw : fallback)) * 20) / 20;
     return {
       theme: pick(themes, value.theme, defaultSettings.theme),
       textSpeed: pick(textSpeeds, value.textSpeed, defaultSettings.textSpeed),
       animationSpeed: pick(animationSpeeds, value.animationSpeed, defaultSettings.animationSpeed),
       radioEnabled: value.radioEnabled === true,
-      radioVolume: Math.round(Math.min(1, Math.max(0, volume)) * 20) / 20,
+      radioVolume: level(value.radioVolume, defaultSettings.radioVolume),
       videoEnabled: value.videoEnabled === true,
+      effectsEnabled: value.effectsEnabled !== false,
+      effectsVolume: level(value.effectsVolume, defaultSettings.effectsVolume),
     };
   } catch {
     return defaultSettings;

@@ -71,6 +71,27 @@ export function nextTrack() {
   startTrack(pickTrack(radioTracks.length, current));
 }
 
+/** Volume do rádio durante as batalhas (e enquanto toca um efeito longo): no máximo 10%. */
+export const duckedVolume = 0.1;
+let ducks = 0;
+const volumeOf = (radioVolume: number) => (ducks > 0 ? Math.min(radioVolume, duckedVolume) : radioVolume);
+
+/**
+ * Abaixa o rádio para 10% (ou menos, se o volume já era menor) até a função devolvida ser chamada.
+ * Vale por contagem: batalha e efeito juntos só soltam o volume quando os dois terminam.
+ */
+export function duckRadio(): () => void {
+  ducks += 1;
+  if (audio) audio.volume = volumeOf(getSettings().radioVolume);
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    ducks = Math.max(0, ducks - 1);
+    if (audio) audio.volume = volumeOf(getSettings().radioVolume);
+  };
+}
+
 function sync() {
   const { radioEnabled, radioVolume } = getSettings();
   if (!radioEnabled || radioTracks.length === 0) {
@@ -83,11 +104,11 @@ function sync() {
     audio.preload = 'auto';
     audio.addEventListener('ended', () => startTrack(pickTrack(radioTracks.length, current)));
     audio.addEventListener('error', () => { if (audio) window.setTimeout(() => startTrack(pickTrack(radioTracks.length, current)), 1000); });
-    audio.volume = radioVolume;
+    audio.volume = volumeOf(radioVolume);
     startTrack(pickTrack(radioTracks.length, null));
     return;
   }
-  audio.volume = radioVolume;
+  audio.volume = volumeOf(radioVolume);
   if (audio.paused && !status.playing) void play();
 }
 

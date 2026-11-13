@@ -1,10 +1,10 @@
-## Pokémon Simulator Evolution 1.1.0
+## Pokémon Simulator Evolution 1.2.0
 
 ### Como instalar
 
-Baixe **`PokemonSimulatorEvolution-v1.1.0-full-win-x64.zip`**, extraia onde quiser e abra `PokemonSimulatorEvolution.exe`. A pasta já vem completa: o executável, o Node.js embutido (`runtime/`), o jogo (`app/`) e as imagens e músicas (`recursos/`). Não precisa instalar nada.
+Baixe **`PokemonSimulatorEvolution-v1.2.0-full-win-x64.zip`**, extraia onde quiser e abra `PokemonSimulatorEvolution.exe`. Quem já tem a 1.1.0 recebe esta versão pela atualização automática do `.exe` (saves e `recursos/` não são mexidos).
 
-(`PokemonSimulatorEvolution-v1.1.0-update-win-x64.zip` é o pacote que a atualização automática baixa; não precisa baixá-lo à mão.)
+(`PokemonSimulatorEvolution-v1.2.0-update-win-x64.zip` é o pacote que a atualização automática baixa; não precisa baixá-lo à mão.)
 
 ### Como funciona
 
@@ -16,14 +16,21 @@ Baixe **`PokemonSimulatorEvolution-v1.1.0-full-win-x64.zip`**, extraia onde quis
 
 ### Novidades
 
-- **Saves em banco SQLite**, como no jogo antigo: ficam em `saves/game.db`, ao lado do `.exe`, e não dependem mais do navegador nem do endereço. A cada início o jogo guarda uma cópia em `saves/backups/` (as 5 últimas). Para mudar de computador ou fazer backup, copie a pasta `saves/`.
-- **Seus saves da 1.0.0 vêm junto:** na primeira abertura o jogo envia ao banco, uma única vez, o que seu navegador já guardava em `127.0.0.1:34600`.
-- **Mesma arquitetura do jogo antigo:** launcher na bandeja + Node.js embutido + servidor local, em vez de um único executável.
-- **Pokémon inicial:** numa jornada nova só dá para escolher entre os iniciais de Kanto. Os iniciais de todas as gerações são liberados no **Novo Jogo+**, depois de zerar o jogo.
+- **Música de batalha:** ao começar uma batalha toca a abertura (`pokemon-battle.mp3`) e a rádio cai para **10%** enquanto você luta; ao sair da batalha o volume volta ao que estava.
+- **Som de captura:** toca quando uma Poké Bola captura o Pokémon, nos Selvagens e nas batalhas.
+- **Som de shiny:** toca quando um Pokémon brilhante aparece.
+- **Opções › Efeitos sonoros:** liga/desliga e volume próprio dos efeitos (a rádio continua com o volume dela).
+- **Temas legíveis:** os textos sumiam ao trocar de tema porque as cores `rgb()`/`rgba()` não eram trocadas junto com as demais (fundos mudavam, o texto ficava igual). Agora todas entram no tema. A tela de batalha (nome do adversário, teclas de atalho Q/W/E/R e 1–4) e a legenda da capa ficam sempre legíveis, as estrelas de 4★ ficam mais claras no Noturno e o texto secundário do Elétrico ficou mais escuro.
 
-### Atualizando da 1.0.0
+### Sobre os sons
 
-A 1.0.0 era um único `.exe` e não consegue se atualizar para este formato. Baixe o pacote completo da 1.1.0 e extraia numa pasta nova; ao abrir, seus saves são migrados sozinhos. Depois disso as atualizações são automáticas.
+Os arquivos ficam em `recursos/Sons/Efeitos` (já incluídos no pacote completo). O navegador só libera o som depois do primeiro clique ou tecla na página.
+
+### Novidades anteriores (1.1.0)
+
+- Saves em banco SQLite (`saves/game.db`), com cópia automática em `saves/backups/`; seus saves da 1.0.0 são migrados na primeira abertura.
+- Mesma arquitetura do jogo antigo: launcher na bandeja + Node.js embutido + servidor local.
+- Numa jornada nova só dá para escolher os iniciais de Kanto; os de todas as gerações são liberados no Novo Jogo+.
 
 ### Segurança da atualização
 
