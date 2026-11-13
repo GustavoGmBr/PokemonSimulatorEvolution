@@ -2,9 +2,9 @@ import { useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { gameModes, type GameMode, type JourneyDraft, type Starter } from '@/lib/journey-saves';
+import { gameModes, starterGenerations, type GameMode, type JourneyDraft, type Starter } from '@/lib/journey-saves';
 import { defaultSpriteByGender, getTrainerSprite, type TrainerGender } from '@/lib/trainer-sprites';
-import { StarterPicker } from './starter-picker';
+import { firstJourneyGenerations, StarterPicker } from './starter-picker';
 import { TrainerSpritePicker } from './trainer-sprite-picker';
 
 export function JourneySetup({ draft, onSave, submitLabel = 'Salvar alterações' }: {
@@ -19,6 +19,10 @@ export function JourneySetup({ draft, onSave, submitLabel = 'Salvar alterações
   const [mode, setMode] = useState<GameMode>('normal');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // Saves antigos podem ter um inicial de outra geração: a geração dele continua visível para não sumir da tela.
+  const savedGeneration = draft && starterGenerations.find(({ starters }) => starters.some(([name]) => name === draft.starter))?.generation;
+  const generations = savedGeneration && !firstJourneyGenerations.includes(savedGeneration) ? [...firstJourneyGenerations, savedGeneration] : firstJourneyGenerations;
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -64,7 +68,7 @@ export function JourneySetup({ draft, onSave, submitLabel = 'Salvar alterações
         <TrainerSpritePicker value={trainerSprite} gender={gender} onChange={setTrainerSprite} />
         <fieldset>
           <legend className="mb-2 text-sm font-bold">Pokémon inicial</legend>
-          <StarterPicker value={starter} onChange={setStarter} />
+          <StarterPicker value={starter} onChange={setStarter} generations={generations} />
         </fieldset>
         {!draft && (
           <fieldset>

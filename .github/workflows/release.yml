@@ -59,6 +59,32 @@ jobs:
         if: steps.existing.outputs.skip != 'true'
         run: go test ./...
         working-directory: launcher
+      - name: Baixar os recursos (branch "recursos")
+        id: recursos
+        if: steps.existing.outputs.skip != 'true'
+        continue-on-error: true
+        uses: actions/checkout@v4
+        with:
+          ref: recursos
+          path: recursos-branch
+      - name: Montar o pacote completo (pasta do jogo com o .exe)
+        if: steps.existing.outputs.skip != 'true'
+        run: |
+          version=$(node -p "require('./package.json').version")
+          name="PokemonSimulatorEvolution-v$version-full-win-x64"
+          dir="pacote/PokemonSimulatorEvolution"
+          mkdir -p "$dir"
+          cp dist/release/PokemonSimulatorEvolution.exe "$dir/"
+          cp RELEASE_NOTES.md "$dir/LEIAME.md"
+          if ls recursos-branch/*.zip >/dev/null 2>&1; then
+            for z in recursos-branch/*.zip; do unzip -q -o "$z" -d "$dir"; done
+            test -d "$dir/recursos" || { echo "::error::os .zip da branch recursos precisam conter a pasta recursos/"; exit 1; }
+            echo "Recursos: $(find "$dir/recursos" -type f | wc -l) arquivos"
+            (cd pacote && zip -q -r -9 "../dist/release/$name.zip" PokemonSimulatorEvolution)
+            (cd dist/release && sha256sum "$name.zip" > "$name.zip.sha256")
+          else
+            echo "::warning::branch recursos ausente: a release sai só com o .exe (sem o pacote completo)."
+          fi
       - name: Publicar a release
         if: steps.existing.outputs.skip != 'true'
         env:
@@ -66,7 +92,8 @@ jobs:
         run: |
           version=$(node -p "require('./package.json').version")
           tag="v$version"
-          args=(release create "$tag" dist/release/PokemonSimulatorEvolution.exe dist/release/PokemonSimulatorEvolution.exe.sha256
+          shopt -s nullglob
+          args=(release create "$tag" dist/release/PokemonSimulatorEvolution.exe dist/release/PokemonSimulatorEvolution.exe.sha256 dist/release/*-full-win-x64.zip*
             --target "$GITHUB_SHA" --title "Pokémon Simulator Evolution $tag" --notes-file RELEASE_NOTES.md)
           case "$version" in *-*) args+=(--prerelease) ;; esac
           gh "${args[@]}"

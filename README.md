@@ -49,7 +49,8 @@ Abra o endereço indicado pelo Vite. Use `npm run typecheck` para checar os tipo
 - **Opções de linha de comando:** `--background` (não abre o navegador), `--no-update`, `--stop` (encerra o jogo aberto), `--recursos=`.
 - **Saves:** ficam no `localStorage` do navegador, por endereço. Por isso a porta fixa importa: sempre `127.0.0.1:34600`. Saves feitos em `localhost:5173` (`npm run dev`) precisam ser exportados e importados.
 - **Compilar:** com Go 1.24+ e Node 22, `npm run build:exe` gera o `.exe` na raiz; `npm run test:launcher` roda os testes do launcher (`go test`). O ícone e o manifesto do `.exe` vêm de `launcher/rsrc_windows_amd64.syso` (gerado por `go run ./tools/winres` dentro de `launcher/`).
-- **Publicar uma versão:** aumente `version` em `package.json` (e `apps/web/package.json`), escreva `RELEASE_NOTES.md`, faça o commit e envie para a `main` (ou crie a tag `vX.Y.Z` à mão). Se a release dessa versão ainda não existe, o GitHub Actions (`.github/workflows/release.yml`) compila, testa e cria a release com o `.exe` e o `.sha256`.
+- **Pacote completo:** a release traz `PokemonSimulatorEvolution-vX.Y.Z-full-win-x64.zip` (pasta com o `.exe` + `recursos/`), além do `.exe` e do `.sha256` usados pela atualização automática. O `recursos/` fica fora da `main`: o workflow o lê da branch `recursos` (arquivos `.zip` com a pasta `recursos/` dentro).
+- **Publicar uma versão:** aumente `version` em `package.json` (e `apps/web/package.json`), escreva `RELEASE_NOTES.md`, faça o commit e crie a tag `vX.Y.Z`. O GitHub Actions (`.github/workflows/release.yml`) compila, testa e cria a release com o `.exe` e o `.sha256`.
 
 ## Batalhas
 
@@ -60,6 +61,7 @@ Ginásios usam os times do catálogo do Remake, com circuitos liberados após ve
 ## Novo Jogo+ e modos de jogo
 
 - **Novo Jogo+:** ao derrotar todos os campeões aparece o aviso "Jogo zerado!" (`progress.restart`, guardado no save: se a aba fechar antes da escolha, o aviso volta). O jogador escolhe um novo inicial entre os de **todas as gerações** e o save recomeça **do zero**: Pokémon, itens, dinheiro, missões, insígnias, ginásios e estatísticas são reiniciados (`restartJourney` em `lib/journey-saves.ts`). Ficam o modo de jogo, o tempo de jogo e `progress.cycle`, que conta quantas vezes o jogo foi zerado. Com o ciclo acima de 0 o limite de nível dos Pokémon some (selvagens, doces e evoluções liberados).
+- **Iniciais:** numa jornada nova só os de Kanto (Gen 1) ficam disponíveis; os iniciais de todas as gerações são exclusivos do Novo Jogo+ (`firstJourneyGenerations` em `screens/starter-picker.tsx`; saves antigos mantêm a geração do inicial que já tinham).
 - **Iniciais sempre 4★:** todo inicial nasce com IV 31 em tudo (100%); saves antigos têm o inicial corrigido ao carregar.
 - **Escala pela média da equipe:** no Novo Jogo+ treinadores, ginásios (líder, Elite e campeão), chefes e a nova **Copa Evolution** (acima da Copa Prime) usam a média de nível da equipe somada a um ajuste (`scaleOffsets` em `lib/battle/challenges.ts`): treinadores por dificuldade (−10 a +5), líderes +0, Elite +3, campeão +6, chefes −10 a +15 conforme as estrelas, Copa Evolution +5.
 - **Morte permanente:** modo escolhido ao criar a jornada (`progress.mode`). No fim da batalha, todo Pokémon derrotado é apagado; se a equipe ficar vazia, entra o de maior nível do PC. Sem nenhum Pokémon (equipe + PC) o save é excluído e aparece a tela de fim de jogo. O Pokémon apostado no cassino não é apagado pela batalha.
