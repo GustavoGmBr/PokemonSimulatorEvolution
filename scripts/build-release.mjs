@@ -2,7 +2,9 @@
 //
 //   PokemonSimulatorEvolution-v<versão>-full-win-x64.zip     pasta do jogo completa: .exe, runtime\node.exe, app\, recursos\
 //   PokemonSimulatorEvolution-v<versão>-update-win-x64.zip   só o .exe e app\ (o que a atualização automática baixa)
-//   (e o .sha256 de cada um)
+//   PokemonSimulatorEvolution.exe                            o launcher solto (+ .sha256): é o que os .exe da linha 1.0.x baixam para se
+//                                                            atualizar; na primeira abertura ele baixa o pacote completo e instala o jogo
+//   (e o .sha256 de cada pacote)
 //
 //   npm run build:release -- --recursos=pasta-com-recursos   (a pasta que contém imagens e músicas, ex.: ./recursos)
 //   --node=caminho\node.exe   usa este Node como runtime (padrão: baixa o node.exe da mesma versão do Node que está rodando)
@@ -138,5 +140,14 @@ for (const { kind, entries, names } of packages) {
   const hash = await sha256File(archive)
   writeFileSync(`${archive}.sha256`, `${hash}  ${name}\n`, 'ascii')
   console.log(`  ${(readFileSync(archive).length / 1024 / 1024).toFixed(1)} MB  sha256 ${hash.slice(0, 12)}…`)
+}
+
+// 7. launcher solto: os .exe da linha 1.0.x (arquivo único) só sabem baixar "PokemonSimulatorEvolution.exe" + .sha256 de uma release mais nova.
+if (!flag('skip-launcher')) {
+  const loose = join(out, `${prefix}.exe`)
+  cpSync(join(stage, `${prefix}.exe`), loose)
+  const hash = await sha256File(loose)
+  writeFileSync(`${loose}.sha256`, `${hash}  ${prefix}.exe\n`, 'ascii')
+  console.log(`Launcher solto: ${prefix}.exe  sha256 ${hash.slice(0, 12)}…`)
 }
 console.log(`\nPacotes em ${out}`)

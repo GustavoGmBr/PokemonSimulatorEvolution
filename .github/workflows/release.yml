@@ -6,6 +6,8 @@ name: Release
 # Os pacotes são montados aqui por scripts/build-release.mjs (launcher em Go + Node.js embutido + servidor SQLite + interface):
 #   *-full-win-x64.zip    pasta do jogo completa (o que o jogador baixa)
 #   *-update-win-x64.zip  .exe e app/ (o que o launcher instalado baixa e confere pelo .sha256)
+#   PokemonSimulatorEvolution.exe  o launcher solto (+ .sha256): o .exe antigo (1.0.x) baixa este para se atualizar e, ao abrir,
+#                                  instala o jogo a partir do pacote completo
 on:
   push:
     branches: [main]
@@ -97,7 +99,7 @@ jobs:
               exit 0
             fi
           fi
-          args=(release create "$tag" dist/release/*-full-win-x64.zip* dist/release/*-update-win-x64.zip*
+          args=(release create "$tag" dist/release/*-full-win-x64.zip* dist/release/*-update-win-x64.zip* dist/release/PokemonSimulatorEvolution.exe*
             --target "$GITHUB_SHA" --title "Pokémon Simulator Evolution $tag" --notes-file RELEASE_NOTES.md)
           case "$version" in *-*) args+=(--prerelease) ;; esac
           gh "${args[@]}"

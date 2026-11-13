@@ -367,6 +367,23 @@ func (a *app) stopGame() {
 
 // startup procura atualização antes de iniciar o jogo (para o jogador não abrir a versão velha), inicia o servidor e abre o navegador.
 func (a *app) startup() {
+	// .exe que chegou sozinho (a atualização do 1.0.x): ainda não tem o Node.js nem o jogo, então baixa o pacote completo.
+	if a.updatesEnabled() && needsBootstrap(a.root) {
+		trayNotify("Pokémon Simulator Evolution", "Baixando os arquivos do jogo (só nesta primeira vez). Pode levar alguns minutos…")
+		ctx, cancel := withTimeout(1800)
+		tag, err := a.upd.bootstrap(ctx, a.recursos != "")
+		cancel()
+		if err != nil {
+			a.logf("instalação inicial: %v", err)
+			showError("Pokémon Simulator Evolution", "Não foi possível baixar os arquivos do jogo.\n\n"+err.Error()+"\n\nConfira a internet e abra o programa de novo. Se continuar, baixe o pacote completo em https://github.com/"+repository+"/releases")
+			trayQuit()
+			return
+		}
+		a.logf("jogo instalado a partir de %s", tag)
+		if a.recursos == "" {
+			a.recursos = findRecursos(a.opts.recursos, a.root)
+		}
+	}
 	if a.updatesEnabled() && !a.opts.updated {
 		ctx, cancel := withTimeout(120)
 		latest, installed, err := a.upd.check(ctx, true)

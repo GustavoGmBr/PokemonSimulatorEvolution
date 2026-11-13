@@ -1,10 +1,12 @@
-## Pokémon Simulator Evolution 1.2.0
+## Pokémon Simulator Evolution 1.2.1
 
 ### Como instalar
 
-Baixe **`PokemonSimulatorEvolution-v1.2.0-full-win-x64.zip`**, extraia onde quiser e abra `PokemonSimulatorEvolution.exe`. Quem já tem a 1.1.0 recebe esta versão pela atualização automática do `.exe` (saves e `recursos/` não são mexidos).
+Baixe **`PokemonSimulatorEvolution-v1.2.1-full-win-x64.zip`**, extraia onde quiser e abra `PokemonSimulatorEvolution.exe`. Quem já tem a 1.1.0 ou a 1.2.0 recebe esta versão pela atualização automática do `.exe` (saves e `recursos/` não são mexidos).
 
-(`PokemonSimulatorEvolution-v1.2.0-update-win-x64.zip` é o pacote que a atualização automática baixa; não precisa baixá-lo à mão.)
+**Tem o `.exe` da 1.0.x (arquivo único)?** Basta abri-lo: ele se atualiza sozinho para esta versão. Na primeira abertura o programa novo baixa o Node.js e os arquivos do jogo (uns 120 MB, só desta vez), mantém a sua pasta `recursos/` se já tiver uma e migra os saves do navegador para o banco SQLite. Depois disso as atualizações são as pequenas, automáticas.
+
+(`PokemonSimulatorEvolution-v1.2.1-update-win-x64.zip` é o pacote que a atualização automática baixa; não precisa baixá-lo à mão.)
 
 ### Como funciona
 
@@ -16,6 +18,7 @@ Baixe **`PokemonSimulatorEvolution-v1.2.0-full-win-x64.zip`**, extraia onde quis
 
 ### Novidades
 
+- **Ponte de atualização da 1.0.x:** esta release traz também o `PokemonSimulatorEvolution.exe` solto (com `.sha256`), que é o arquivo que o `.exe` antigo sabe baixar. O launcher agora instala sozinho o Node.js e o jogo quando abre sem eles (`bootstrap`), conferindo o SHA-256 do pacote completo.
 - **Música de batalha:** ao começar uma batalha toca a abertura (`pokemon-battle.mp3`) e a rádio cai para **10%** enquanto você luta; ao sair da batalha o volume volta ao que estava.
 - **Som de captura:** toca quando uma Poké Bola captura o Pokémon, nos Selvagens e nas batalhas.
 - **Som de shiny:** toca quando um Pokémon brilhante aparece.
@@ -26,9 +29,10 @@ Baixe **`PokemonSimulatorEvolution-v1.2.0-full-win-x64.zip`**, extraia onde quis
 
 Os arquivos ficam em `recursos/Sons/Efeitos` (já incluídos no pacote completo). O navegador só libera o som depois do primeiro clique ou tecla na página.
 
-### Novidades anteriores (1.1.0)
+### Novidades anteriores (1.1.0 e 1.2.0)
 
 - Saves em banco SQLite (`saves/game.db`), com cópia automática em `saves/backups/`; seus saves da 1.0.0 são migrados na primeira abertura.
+- A 1.2.0 trouxe os sons de batalha, captura e shiny e a correção dos temas (ver acima).
 - Mesma arquitetura do jogo antigo: launcher na bandeja + Node.js embutido + servidor local.
 - Numa jornada nova só dá para escolher os iniciais de Kanto; os de todas as gerações são liberados no Novo Jogo+.
 
