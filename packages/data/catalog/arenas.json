@@ -1,0 +1,29 @@
+{
+ "largura": 600,
+ "altura": 400,
+ "horizonte": 196,
+ "posicoes": {
+  "jogador": {
+   "x": 0.243,
+   "y": 0.573,
+   "olhando": "direita"
+  },
+  "adversario": {
+   "x": 0.764,
+   "y": 0.557,
+   "olhando": "esquerda"
+  }
+ },
+ "cenarios": [
+  "campina",
+  "floresta",
+  "litoral",
+  "vulcao",
+  "caverna",
+  "pantano",
+  "tecnologico",
+  "pico",
+  "santuario",
+  "estadio"
+ ]
+}

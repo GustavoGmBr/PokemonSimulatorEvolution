@@ -1,0 +1,26 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+*.log
+/saves/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+
+# Acervo de imagens e músicas (fica ao lado do .exe, fora do repositório)
+/recursos/
+
+# Launcher: a interface compilada é copiada para launcher/web antes do go build
+/launcher/web/*
+!/launcher/web/.gitkeep
+*.exe
+*.exe.sha256
+*.exe.old
+*.exe.new

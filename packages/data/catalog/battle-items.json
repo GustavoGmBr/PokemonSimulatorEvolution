@@ -1,0 +1,240 @@
+[
+ {
+  "name": "poke-ball",
+  "displayName": "Poké Bola",
+  "category": "captura",
+  "description": "Usada para capturar Pokémon selvagens.",
+  "price": 200
+ },
+ {
+  "name": "great-ball",
+  "displayName": "Grande Bola",
+  "category": "captura",
+  "description": "Uma bola com maior eficiência de captura.",
+  "price": 600
+ },
+ {
+  "name": "ultra-ball",
+  "displayName": "Ultra Bola",
+  "category": "captura",
+  "description": "Uma bola com alta eficiência de captura.",
+  "price": 1200
+ },
+ {
+  "name": "master-ball",
+  "displayName": "Master Bola",
+  "category": "captura",
+  "description": "Uma bola que garante a captura de um Pokémon selvagem.",
+  "price": null
+ },
+ {
+  "name": "potion",
+  "displayName": "Poção",
+  "category": "cura",
+  "description": "Recupera parte do HP de um Pokémon.",
+  "price": 300
+ },
+ {
+  "name": "super-potion",
+  "displayName": "Superpoção",
+  "category": "cura",
+  "description": "Recupera mais HP que uma Poção.",
+  "price": 700
+ },
+ {
+  "name": "hyper-potion",
+  "displayName": "Hiperpoção",
+  "category": "cura",
+  "description": "Recupera uma grande quantidade de HP.",
+  "price": 1200
+ },
+ {
+  "name": "max-potion",
+  "displayName": "Poção Máxima",
+  "category": "cura",
+  "description": "Recupera todo o HP de um Pokémon.",
+  "price": 2500
+ },
+ {
+  "name": "full-restore",
+  "displayName": "Restauração Total",
+  "category": "cura",
+  "description": "Recupera todo o HP de um Pokémon.",
+  "price": 3000
+ },
+ {
+  "name": "revive",
+  "displayName": "Reviver",
+  "category": "cura",
+  "description": "Reanima um Pokémon desmaiado com parte do HP.",
+  "price": 1500
+ },
+ {
+  "name": "max-revive",
+  "displayName": "Reviver Máximo",
+  "category": "cura",
+  "description": "Reanima um Pokémon desmaiado com HP cheio.",
+  "price": 4000
+ },
+ {
+  "name": "fast-ball",
+  "displayName": "Bola Rápida",
+  "category": "captura",
+  "description": "Multiplica a captura por 6× no primeiro turno.",
+  "price": 1000
+ },
+ {
+  "name": "timer-ball",
+  "displayName": "Bola Psíquica",
+  "category": "captura",
+  "description": "Multiplica a captura por 3× contra Pokémon do tipo Psíquico.",
+  "price": 1000
+ },
+ {
+  "name": "dusk-ball",
+  "displayName": "Bola do Crepúsculo",
+  "category": "captura",
+  "description": "Multiplica a captura por 4× contra Pokémon dos tipos Sombrio ou Fantasma.",
+  "price": 1000
+ },
+ {
+  "name": "dive-ball",
+  "displayName": "Bola Aquática",
+  "category": "captura",
+  "description": "Multiplica a captura por 3,5× contra Pokémon do tipo Água.",
+  "price": 1000
+ },
+ {
+  "name": "net-ball",
+  "displayName": "Bola de Rede",
+  "category": "captura",
+  "description": "Multiplica a captura por 3× contra Pokémon de Água ou Inseto.",
+  "price": 1000
+ },
+ {
+  "name": "nest-ball",
+  "displayName": "Bola do Ninho",
+  "category": "captura",
+  "description": "Multiplica a captura por 3× contra Pokémon do tipo Voador.",
+  "price": 1000
+ },
+ {
+  "name": "repeat-ball",
+  "displayName": "Bola Trovão",
+  "category": "captura",
+  "description": "Multiplica a captura por 3× contra Pokémon do tipo Elétrico.",
+  "price": 1000
+ },
+ {
+  "name": "heavy-ball",
+  "displayName": "Bola Pesada",
+  "category": "captura",
+  "description": "Pokémon maiores ou mais pesados recebem bônus crescente, até 4×.",
+  "price": 1000
+ },
+ {
+  "name": "moon-ball",
+  "displayName": "Bola Dracônica",
+  "category": "captura",
+  "description": "Multiplica a captura por 3× contra Pokémon do tipo Dragão.",
+  "price": 1000
+ },
+ {
+  "name": "level-ball",
+  "displayName": "Bola Congelante",
+  "category": "captura",
+  "description": "Multiplica a captura por 3× contra Pokémon do tipo Gelo.",
+  "price": 1000
+ },
+ {
+  "name": "love-ball",
+  "displayName": "Bola das Fadas",
+  "category": "captura",
+  "description": "Multiplica a captura por 3,5× contra Pokémon do tipo Fada e por 3× contra Pokémon que compartilham um tipo com o seu.",
+  "price": 1000
+ },
+ {
+  "name": "dream-ball",
+  "displayName": "Bola de Sonho",
+  "category": "captura",
+  "description": "Multiplica a captura por 4× contra Pokémon adormecidos.",
+  "price": 1000
+ },
+ {
+  "name": "heal-ball",
+  "displayName": "Bola de Cura",
+  "category": "captura",
+  "description": "Captura e restaura todo o HP do Pokémon.",
+  "price": 1000
+ },
+ {
+  "name": "luxury-ball",
+  "displayName": "Bola de Treino",
+  "category": "captura",
+  "description": "Multiplica a captura por 3× contra Pokémon do tipo Lutador.",
+  "price": 1000
+ },
+ {
+  "name": "friend-ball",
+  "displayName": "Bola Floresta",
+  "category": "captura",
+  "description": "Multiplica a captura por 3× contra Pokémon do tipo Planta.",
+  "price": 1000
+ },
+ {
+  "name": "premier-ball",
+  "displayName": "Bola Premier",
+  "category": "captura",
+  "description": "Visual especial. Ganhe uma ao comprar 10 Poké Bolas de uma vez.",
+  "price": null
+ },
+ {
+  "name": "sport-ball",
+  "displayName": "Bola Incandescente",
+  "category": "captura",
+  "description": "Multiplica a captura por 3× contra Pokémon do tipo Fogo.",
+  "price": 1000
+ },
+ {
+  "name": "antidote",
+  "displayName": "Antídoto",
+  "category": "cura",
+  "description": "Cura o envenenamento de um Pokémon em batalha.",
+  "price": 200
+ },
+ {
+  "name": "burn-heal",
+  "displayName": "Cura de Queimadura",
+  "category": "cura",
+  "description": "Cura a queimadura de um Pokémon em batalha.",
+  "price": 200
+ },
+ {
+  "name": "ice-heal",
+  "displayName": "Cura de Gelo",
+  "category": "cura",
+  "description": "Descongela um Pokémon em batalha.",
+  "price": 200
+ },
+ {
+  "name": "awakening",
+  "displayName": "Despertar",
+  "category": "cura",
+  "description": "Acorda um Pokémon que está dormindo.",
+  "price": 200
+ },
+ {
+  "name": "paralyze-heal",
+  "displayName": "Cura de Paralisia",
+  "category": "cura",
+  "description": "Cura a paralisia de um Pokémon em batalha.",
+  "price": 200
+ },
+ {
+  "name": "full-heal",
+  "displayName": "Cura Total",
+  "category": "cura",
+  "description": "Cura qualquer problema de status e a confusão.",
+  "price": 400
+ }
+]

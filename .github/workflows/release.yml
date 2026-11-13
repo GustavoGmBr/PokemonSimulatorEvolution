@@ -1,0 +1,51 @@
+name: Release
+
+# Publica uma versão: crie a tag vX.Y.Z (igual à versão do package.json) e envie para o GitHub.
+#   git tag -a v1.0.0 -m "Pokémon Simulator Evolution v1.0.0" && git push origin v1.0.0
+# O executável é compilado aqui (Go, sem dependências externas) e anexado à release junto com o .sha256 —
+# é dali que o launcher instalado baixa e confere as atualizações.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows-exe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+      - name: A tag precisa ser igual à versão do package.json
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if [ "$GITHUB_REF_TYPE" = "tag" ] && [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "Tag $GITHUB_REF_NAME difere da versão $version do package.json" >&2
+            exit 1
+          fi
+      - run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm test
+      - name: Compilar a interface e o executável
+        run: npm run build:exe -- --out=dist/release/PokemonSimulatorEvolution.exe
+      - name: Testes do launcher
+        run: go test ./...
+        working-directory: launcher
+      - name: Publicar a release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(node -p "require('./package.json').version")
+          tag="v$version"
+          args=(release create "$tag" dist/release/PokemonSimulatorEvolution.exe dist/release/PokemonSimulatorEvolution.exe.sha256
+            --target "$GITHUB_SHA" --title "Pokémon Simulator Evolution $tag" --notes-file RELEASE_NOTES.md)
+          case "$version" in *-*) args+=(--prerelease) ;; esac
+          gh "${args[@]}"

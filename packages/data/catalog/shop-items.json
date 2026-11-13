@@ -1,0 +1,1171 @@
+[
+ {
+  "name": "poke-ball",
+  "displayName": "Poké Bola",
+  "category": "captura",
+  "description": "Usada para capturar Pokémon selvagens.",
+  "price": 300
+ },
+ {
+  "name": "great-ball",
+  "displayName": "Grande Bola",
+  "category": "captura",
+  "description": "Uma bola com maior eficiência de captura.",
+  "price": 900
+ },
+ {
+  "name": "ultra-ball",
+  "displayName": "Ultra Bola",
+  "category": "captura",
+  "description": "Uma bola com alta eficiência de captura.",
+  "price": 1800
+ },
+ {
+  "name": "fast-ball",
+  "displayName": "Bola Rápida",
+  "category": "captura",
+  "description": "Multiplica a captura por 6× no primeiro turno.",
+  "price": 1500
+ },
+ {
+  "name": "timer-ball",
+  "displayName": "Bola Psíquica",
+  "category": "captura",
+  "description": "Multiplica a captura por 3× contra Pokémon do tipo Psíquico.",
+  "price": 1500
+ },
+ {
+  "name": "dusk-ball",
+  "displayName": "Bola do Crepúsculo",
+  "category": "captura",
+  "description": "Multiplica a captura por 4× contra Pokémon dos tipos Sombrio ou Fantasma.",
+  "price": 1500
+ },
+ {
+  "name": "dive-ball",
+  "displayName": "Bola Aquática",
+  "category": "captura",
+  "description": "Multiplica a captura por 3,5× contra Pokémon do tipo Água.",
+  "price": 1500
+ },
+ {
+  "name": "net-ball",
+  "displayName": "Bola de Rede",
+  "category": "captura",
+  "description": "Multiplica a captura por 3× contra Pokémon de Água ou Inseto.",
+  "price": 1500
+ },
+ {
+  "name": "nest-ball",
+  "displayName": "Bola do Ninho",
+  "category": "captura",
+  "description": "Multiplica a captura por 3× contra Pokémon do tipo Voador.",
+  "price": 1500
+ },
+ {
+  "name": "repeat-ball",
+  "displayName": "Bola Trovão",
+  "category": "captura",
+  "description": "Multiplica a captura por 3× contra Pokémon do tipo Elétrico.",
+  "price": 1500
+ },
+ {
+  "name": "heavy-ball",
+  "displayName": "Bola Pesada",
+  "category": "captura",
+  "description": "Pokémon maiores ou mais pesados recebem bônus crescente, até 4×.",
+  "price": 1500
+ },
+ {
+  "name": "moon-ball",
+  "displayName": "Bola Dracônica",
+  "category": "captura",
+  "description": "Multiplica a captura por 3× contra Pokémon do tipo Dragão.",
+  "price": 1500
+ },
+ {
+  "name": "level-ball",
+  "displayName": "Bola Congelante",
+  "category": "captura",
+  "description": "Multiplica a captura por 3× contra Pokémon do tipo Gelo.",
+  "price": 1500
+ },
+ {
+  "name": "love-ball",
+  "displayName": "Bola das Fadas",
+  "category": "captura",
+  "description": "Multiplica a captura por 3,5× contra Pokémon do tipo Fada e por 3× contra Pokémon que compartilham um tipo com o seu.",
+  "price": 1500
+ },
+ {
+  "name": "dream-ball",
+  "displayName": "Bola de Sonho",
+  "category": "captura",
+  "description": "Multiplica a captura por 4× contra Pokémon adormecidos.",
+  "price": 1500
+ },
+ {
+  "name": "heal-ball",
+  "displayName": "Bola de Cura",
+  "category": "captura",
+  "description": "Captura e restaura todo o HP do Pokémon.",
+  "price": 1500
+ },
+ {
+  "name": "luxury-ball",
+  "displayName": "Bola de Treino",
+  "category": "captura",
+  "description": "Multiplica a captura por 3× contra Pokémon do tipo Lutador.",
+  "price": 1500
+ },
+ {
+  "name": "friend-ball",
+  "displayName": "Bola Floresta",
+  "category": "captura",
+  "description": "Multiplica a captura por 3× contra Pokémon do tipo Planta.",
+  "price": 1500
+ },
+ {
+  "name": "sport-ball",
+  "displayName": "Bola Incandescente",
+  "category": "captura",
+  "description": "Multiplica a captura por 3× contra Pokémon do tipo Fogo.",
+  "price": 1500
+ },
+ {
+  "name": "potion",
+  "displayName": "Poção",
+  "category": "cura",
+  "description": "Recupera parte do HP de um Pokémon.",
+  "price": 450
+ },
+ {
+  "name": "super-potion",
+  "displayName": "Superpoção",
+  "category": "cura",
+  "description": "Recupera mais HP que uma Poção.",
+  "price": 1050
+ },
+ {
+  "name": "hyper-potion",
+  "displayName": "Hiperpoção",
+  "category": "cura",
+  "description": "Recupera uma grande quantidade de HP.",
+  "price": 1800
+ },
+ {
+  "name": "max-potion",
+  "displayName": "Poção Máxima",
+  "category": "cura",
+  "description": "Recupera todo o HP de um Pokémon.",
+  "price": 3750
+ },
+ {
+  "name": "full-restore",
+  "displayName": "Restauração Total",
+  "category": "cura",
+  "description": "Recupera todo o HP de um Pokémon.",
+  "price": 4500
+ },
+ {
+  "name": "revive",
+  "displayName": "Reviver",
+  "category": "cura",
+  "description": "Reanima um Pokémon desmaiado com parte do HP.",
+  "price": 2250
+ },
+ {
+  "name": "max-revive",
+  "displayName": "Reviver Máximo",
+  "category": "cura",
+  "description": "Reanima um Pokémon desmaiado com HP cheio.",
+  "price": 6000
+ },
+ {
+  "name": "antidote",
+  "displayName": "Antídoto",
+  "category": "cura",
+  "description": "Cura o envenenamento de um Pokémon em batalha.",
+  "price": 300
+ },
+ {
+  "name": "burn-heal",
+  "displayName": "Cura de Queimadura",
+  "category": "cura",
+  "description": "Cura a queimadura de um Pokémon em batalha.",
+  "price": 300
+ },
+ {
+  "name": "ice-heal",
+  "displayName": "Cura de Gelo",
+  "category": "cura",
+  "description": "Descongela um Pokémon em batalha.",
+  "price": 300
+ },
+ {
+  "name": "awakening",
+  "displayName": "Despertar",
+  "category": "cura",
+  "description": "Acorda um Pokémon que está dormindo.",
+  "price": 300
+ },
+ {
+  "name": "paralyze-heal",
+  "displayName": "Cura de Paralisia",
+  "category": "cura",
+  "description": "Cura a paralisia de um Pokémon em batalha.",
+  "price": 300
+ },
+ {
+  "name": "full-heal",
+  "displayName": "Cura Total",
+  "category": "cura",
+  "description": "Cura qualquer problema de status e a confusão.",
+  "price": 600
+ },
+ {
+  "name": "fire-stone",
+  "displayName": "Pedra de Fogo",
+  "category": "evolucao",
+  "description": "Permite determinadas evoluções de Pokémon. Consumido ao usar.",
+  "price": 750
+ },
+ {
+  "name": "water-stone",
+  "displayName": "Pedra de Água",
+  "category": "evolucao",
+  "description": "Permite determinadas evoluções de Pokémon. Consumido ao usar.",
+  "price": 750
+ },
+ {
+  "name": "thunder-stone",
+  "displayName": "Pedra do Trovão",
+  "category": "evolucao",
+  "description": "Permite determinadas evoluções de Pokémon. Consumido ao usar.",
+  "price": 750
+ },
+ {
+  "name": "leaf-stone",
+  "displayName": "Pedra de Folha",
+  "category": "evolucao",
+  "description": "Permite determinadas evoluções de Pokémon. Consumido ao usar.",
+  "price": 750
+ },
+ {
+  "name": "moon-stone",
+  "displayName": "Pedra da Lua",
+  "category": "evolucao",
+  "description": "Permite determinadas evoluções de Pokémon. Consumido ao usar.",
+  "price": 750
+ },
+ {
+  "name": "sun-stone",
+  "displayName": "Pedra do Sol",
+  "category": "evolucao",
+  "description": "Permite determinadas evoluções de Pokémon de Johto. Consumido ao usar.",
+  "price": 750
+ },
+ {
+  "name": "kings-rock",
+  "displayName": "Pedra do Rei",
+  "category": "evolucao",
+  "description": "Permite evoluções que originalmente exigem troca com este item. Consumido ao usar.",
+  "price": 750
+ },
+ {
+  "name": "metal-coat",
+  "displayName": "Revestimento Metálico",
+  "category": "evolucao",
+  "description": "Permite evoluções que originalmente exigem troca com este item. Consumido ao usar.",
+  "price": 750
+ },
+ {
+  "name": "dragon-scale",
+  "displayName": "Escama de Dragão",
+  "category": "evolucao",
+  "description": "Permite evoluções que originalmente exigem troca com este item. Consumido ao usar.",
+  "price": 750
+ },
+ {
+  "name": "up-grade",
+  "displayName": "Melhoria",
+  "category": "evolucao",
+  "description": "Permite evoluir Porygon para Porygon2. Consumido ao usar.",
+  "price": 750
+ },
+ {
+  "name": "deep-sea-scale",
+  "displayName": "Escama Marinha",
+  "category": "evolucao",
+  "description": "Permite evoluir Clamperl para Gorebyss. Consumido ao usar.",
+  "price": 750
+ },
+ {
+  "name": "deep-sea-tooth",
+  "displayName": "Dente Marinho",
+  "category": "evolucao",
+  "description": "Permite evoluir Clamperl para Huntail. Consumido ao usar.",
+  "price": 750
+ },
+ {
+  "name": "shiny-stone",
+  "displayName": "Pedra Brilhante",
+  "category": "evolucao",
+  "description": "Transforma permanentemente o Pokémon escolhido em shiny. Consumida apenas na transformação; não gasta em Pokémon já shiny. Também permite evoluções compatíveis pelo perfil.",
+  "price": 1500000
+ },
+ {
+  "name": "dusk-stone",
+  "displayName": "Pedra do Crepúsculo",
+  "category": "evolucao",
+  "description": "Permite determinadas evoluções de Sinnoh. Consumido ao usar.",
+  "price": 750
+ },
+ {
+  "name": "dawn-stone",
+  "displayName": "Pedra da Alvorada",
+  "category": "evolucao",
+  "description": "Permite determinadas evoluções de Sinnoh. Consumido ao usar.",
+  "price": 750
+ },
+ {
+  "name": "ice-stone",
+  "displayName": "Pedra de Gelo",
+  "category": "evolucao",
+  "description": "Permite determinadas evoluções de Sinnoh. Consumido ao usar.",
+  "price": 750
+ },
+ {
+  "name": "razor-claw",
+  "displayName": "Garra Afiada",
+  "category": "evolucao",
+  "description": "Permite evoluir Sneasel. Consumido ao usar.",
+  "price": 750
+ },
+ {
+  "name": "razor-fang",
+  "displayName": "Presa Afiada",
+  "category": "evolucao",
+  "description": "Permite evoluir Gligar. Consumido ao usar.",
+  "price": 750
+ },
+ {
+  "name": "protector",
+  "displayName": "Protetor",
+  "category": "evolucao",
+  "description": "Permite evoluir Rhydon. Consumido ao usar.",
+  "price": 750
+ },
+ {
+  "name": "electirizer",
+  "displayName": "Eletrizador",
+  "category": "evolucao",
+  "description": "Permite evoluir Electabuzz. Consumido ao usar.",
+  "price": 750
+ },
+ {
+  "name": "magmarizer",
+  "displayName": "Magmarizador",
+  "category": "evolucao",
+  "description": "Permite evoluir Magmar. Consumido ao usar.",
+  "price": 750
+ },
+ {
+  "name": "dubious-disc",
+  "displayName": "Disco Duvidoso",
+  "category": "evolucao",
+  "description": "Permite evoluir Porygon2. Consumido ao usar.",
+  "price": 750
+ },
+ {
+  "name": "reaper-cloth",
+  "displayName": "Tecido Ceifador",
+  "category": "evolucao",
+  "description": "Permite evoluir Dusclops. Consumido ao usar.",
+  "price": 750
+ },
+ {
+  "name": "linking-cord",
+  "displayName": "Cabo de Ligação",
+  "category": "evolucao",
+  "description": "Permite evoluções que originalmente exigem troca. Consumido ao usar.",
+  "price": 750
+ },
+ {
+  "name": "gmax-stone",
+  "displayName": "Pedra G-Max",
+  "category": "evolucao",
+  "description": "Pedra universal para uma transformação G-Max permanente em espécies compatíveis. Amplia o HP máximo em 50%. Consumido ao usar.",
+  "price": 112500
+ },
+ {
+  "name": "ultra-burst-stone",
+  "displayName": "Pedra Ultra Burst",
+  "category": "evolucao",
+  "description": "Permite transformar Necrozma em Ultra Necrozma permanentemente quando Solgaleo e Lunala estão na coleção. Consumido ao usar.",
+  "price": 225000
+ },
+ {
+  "name": "venusaurite",
+  "displayName": "Venusaurite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "charizardite-x",
+  "displayName": "Charizardite X",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "charizardite-y",
+  "displayName": "Charizardite Y",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "blastoisinite",
+  "displayName": "Blastoisinite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "beedrillite",
+  "displayName": "Beedrillite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "pidgeotite",
+  "displayName": "Pidgeotite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "raichunite-x",
+  "displayName": "Raichunite X",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "raichunite-y",
+  "displayName": "Raichunite Y",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "clefablite",
+  "displayName": "Clefablite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "alakazite",
+  "displayName": "Alakazite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "victreebelite",
+  "displayName": "Victreebelite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "slowbronite",
+  "displayName": "Slowbronite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "gengarite",
+  "displayName": "Gengarite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "kangaskhanite",
+  "displayName": "Kangaskhanite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "starminite",
+  "displayName": "Starminite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "pinsirite",
+  "displayName": "Pinsirite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "gyaradosite",
+  "displayName": "Gyaradosite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "aerodactylite",
+  "displayName": "Aerodactylite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "dragoninite",
+  "displayName": "Dragoninite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "mewtwonite-x",
+  "displayName": "Mewtwonite X",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "mewtwonite-y",
+  "displayName": "Mewtwonite Y",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "ampharosite",
+  "displayName": "Ampharosite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "steelixite",
+  "displayName": "Steelixite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "scizorite",
+  "displayName": "Scizorite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "heracronite",
+  "displayName": "Heracronite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "houndoominite",
+  "displayName": "Houndoominite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "tyranitarite",
+  "displayName": "Tyranitarite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "meganiumite",
+  "displayName": "Meganiumite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "feraligatrite",
+  "displayName": "Feraligatrite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "skarmorite",
+  "displayName": "Skarmorite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "sceptilite",
+  "displayName": "Sceptilite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "blazikenite",
+  "displayName": "Blazikenite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "swampertite",
+  "displayName": "Swampertite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "gardevoirite",
+  "displayName": "Gardevoirite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "sablenite",
+  "displayName": "Sablenite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "mawilite",
+  "displayName": "Mawilite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "aggronite",
+  "displayName": "Aggronite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "medichamite",
+  "displayName": "Medichamite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "manectite",
+  "displayName": "Manectite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "sharpedonite",
+  "displayName": "Sharpedonite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "cameruptite",
+  "displayName": "Cameruptite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "altarianite",
+  "displayName": "Altarianite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "banettite",
+  "displayName": "Banettite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "chimechite",
+  "displayName": "Chimechite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "absolite",
+  "displayName": "Absolite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "absolite-z",
+  "displayName": "Absolite Z",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "glalitite",
+  "displayName": "Glalitite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "salamencite",
+  "displayName": "Salamencite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "metagrossite",
+  "displayName": "Metagrossite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "latiasite",
+  "displayName": "Latiasite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "latiosite",
+  "displayName": "Latiosite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "rayquazatrite",
+  "displayName": "Mega Rayquazatrite",
+  "category": "mega",
+  "description": "Mega Pedra de uso único: permite Mega Evolução permanente de Rayquaza a partir do nível 60.",
+  "price": 75000
+ },
+ {
+  "name": "staraptorite",
+  "displayName": "Staraptorite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "lopunnite",
+  "displayName": "Lopunnite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "garchompite",
+  "displayName": "Garchompite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "garchompite-z",
+  "displayName": "Garchompite Z",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "lucarionite",
+  "displayName": "Lucarionite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "lucarionite-z",
+  "displayName": "Lucarionite Z",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "abomasite",
+  "displayName": "Abomasite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "galladite",
+  "displayName": "Galladite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "froslassite",
+  "displayName": "Froslassite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "heatranite",
+  "displayName": "Heatranite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "darkrainite",
+  "displayName": "Darkrainite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "emboarite",
+  "displayName": "Emboarite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "excadrillite",
+  "displayName": "Excadrillite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "audinite",
+  "displayName": "Audinite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "scolipedite",
+  "displayName": "Scolipedite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "scraftite",
+  "displayName": "Scraftite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "eelektrossite",
+  "displayName": "Eelektrossite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "chandelurite",
+  "displayName": "Chandelurite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "golurkite",
+  "displayName": "Golurkite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "chesnaughtite",
+  "displayName": "Chesnaughtite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "delphoxite",
+  "displayName": "Delphoxite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "greninjaite",
+  "displayName": "Greninjaite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "pyroarite",
+  "displayName": "Pyroarite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "floetteite",
+  "displayName": "Floetteite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "meowstic-maleite",
+  "displayName": "Meowstic Maleite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "meowstic-femaleite",
+  "displayName": "Meowstic Femaleite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "malamarite",
+  "displayName": "Malamarite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "barbaracleite",
+  "displayName": "Barbaracleite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "dragalgeite",
+  "displayName": "Dragalgeite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "hawluchaite",
+  "displayName": "Hawluchaite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "zygardeite",
+  "displayName": "Zygardeite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "diancieite",
+  "displayName": "Diancieite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "crabominableite",
+  "displayName": "Crabominableite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "golisopodite",
+  "displayName": "Golisopodite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "drampaite",
+  "displayName": "Drampaite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "magearnaite",
+  "displayName": "Magearnaite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "magearna-originalite",
+  "displayName": "Magearna Originalite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "zeraoraite",
+  "displayName": "Zeraoraite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "falinksite",
+  "displayName": "Falinksite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "scovillainite",
+  "displayName": "Scovillainite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "glimmoraite",
+  "displayName": "Glimmoraite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "tatsugiri-curlyite",
+  "displayName": "Tatsugiri Curlyite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "tatsugiri-droopyite",
+  "displayName": "Tatsugiri Droopyite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "tatsugiri-stretchyite",
+  "displayName": "Tatsugiri Stretchyite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "baxcaliburite",
+  "displayName": "Baxcaliburite",
+  "category": "mega",
+  "description": "Mega Pedra: permite Mega Evolução permanente a partir do nível 60. Consumido ao usar.",
+  "price": 75000
+ },
+ {
+  "name": "red-orb",
+  "displayName": "Orbe Vermelho",
+  "category": "primal",
+  "description": "Permite a Regressão Primal permanente a partir do nível 60. Consumido ao usar.",
+  "price": 150000
+ },
+ {
+  "name": "blue-orb",
+  "displayName": "Orbe Azul",
+  "category": "primal",
+  "description": "Permite a Regressão Primal permanente a partir do nível 60. Consumido ao usar.",
+  "price": 150000
+ },
+ {
+  "name": "iv-hp",
+  "displayName": "Essência de HP",
+  "category": "ivs",
+  "description": "Aumenta permanentemente +1 IV de HP de um Pokémon, até 31.",
+  "price": 7500
+ },
+ {
+  "name": "iv-attack",
+  "displayName": "Essência de Ataque",
+  "category": "ivs",
+  "description": "Aumenta permanentemente +1 IV de Ataque de um Pokémon, até 31.",
+  "price": 7500
+ },
+ {
+  "name": "iv-defense",
+  "displayName": "Essência de Defesa",
+  "category": "ivs",
+  "description": "Aumenta permanentemente +1 IV de Defesa de um Pokémon, até 31.",
+  "price": 7500
+ },
+ {
+  "name": "iv-special-attack",
+  "displayName": "Essência de At. especial",
+  "category": "ivs",
+  "description": "Aumenta permanentemente +1 IV de At. especial de um Pokémon, até 31.",
+  "price": 7500
+ },
+ {
+  "name": "iv-special-defense",
+  "displayName": "Essência de Def. especial",
+  "category": "ivs",
+  "description": "Aumenta permanentemente +1 IV de Def. especial de um Pokémon, até 31.",
+  "price": 7500
+ },
+ {
+  "name": "iv-speed",
+  "displayName": "Essência de Velocidade",
+  "category": "ivs",
+  "description": "Aumenta permanentemente +1 IV de Velocidade de um Pokémon, até 31.",
+  "price": 7500
+ },
+ {
+  "name": "lucky-egg",
+  "displayName": "Lucky Egg",
+  "category": "buff",
+  "description": "Aumenta em 2× a experiência nas batalhas e soma 25% por geração concluída da 2ª à 9ª, chegando a 4×. Enquanto estiver na mochila.",
+  "price": 75000
+ },
+ {
+  "name": "amulet-coin",
+  "displayName": "Amulet Coin",
+  "category": "buff",
+  "description": "Aumenta em 2× o dinheiro recebido em vitórias e soma 50% por geração concluída a partir da 2ª, até o limite de 5×. Enquanto estiver na mochila.",
+  "price": 75000
+ },
+ {
+  "name": "shiny-charm",
+  "displayName": "Shiny Charm",
+  "category": "buff",
+  "description": "Aumenta as rolagens shiny somente nas gerações cuja Pokédex foi totalmente capturada. Cada geração é ativada separadamente; exige o amuleto na mochila.",
+  "price": 225000
+ },
+ {
+  "name": "catching-charm",
+  "displayName": "Catch Charm",
+  "category": "buff",
+  "description": "Aumenta a chance de captura conforme os desafios da região vencidos, até 30%.",
+  "price": 150000
+ }
+]

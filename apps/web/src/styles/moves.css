@@ -1,0 +1,61 @@
+/* Área de golpes da ficha do Pokémon */
+.mv-list, .mv-learn-list { display: grid; gap: .4rem; list-style: none; margin: 0; padding: 0; }
+.mv-row {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .45rem .6rem;
+  border: 1px solid var(--border);
+  border-radius: .55rem;
+  background: var(--card, transparent);
+}
+.mv-row-empty { opacity: .6; border-style: dashed; }
+.mv-slot {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 1.5rem;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--muted);
+  font-size: .75rem;
+  font-weight: 800;
+}
+.mv-row > .min-w-0 { flex: 1 1 auto; }
+.mv-stats { display: block; color: var(--muted-foreground); font-size: .72rem; }
+.mv-actions { display: flex; flex: none; gap: .25rem; }
+.mv-money { display: inline-flex; align-items: center; gap: .3rem; font-size: .85rem; font-weight: 700; }
+.mv-money svg { width: 1rem; height: 1rem; }
+.mv-extra { flex: none; font-size: .78rem; font-weight: 700; white-space: nowrap; }
+.mv-known { flex: none; font-size: .75rem; color: var(--muted-foreground); }
+.mv-pending, .mv-picker, .mv-learn {
+  display: grid;
+  gap: .45rem;
+  padding: .65rem;
+  border: 1px solid var(--border);
+  border-radius: .6rem;
+  background: var(--muted);
+}
+.mv-picker { background: transparent; border-style: dashed; }
+.mv-picker .mv-stats { display: inline; }
+.mv-tabs { display: flex; gap: .35rem; }
+.mv-tabs button {
+  padding: .3rem .8rem;
+  border: 1px solid var(--border);
+  border-radius: .5rem;
+  background: var(--background);
+  font-size: .82rem;
+  cursor: pointer;
+}
+.mv-tabs button[aria-selected="true"] { background: var(--primary); color: var(--primary-foreground); }
+.mv-learn-list { max-height: 18rem; overflow-y: auto; padding-right: .2rem; }
+.mv-keys { border: 1px solid var(--border); border-radius: .6rem; padding: .5rem .7rem; display: grid; gap: .5rem; }
+.mv-keys summary { display: flex; align-items: center; gap: .4rem; cursor: pointer; font-size: .85rem; font-weight: 700; }
+.mv-keys summary svg { width: 1rem; height: 1rem; }
+.mv-key-list { display: grid; gap: .35rem; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
+.mv-key-list > div { display: flex; align-items: center; justify-content: space-between; gap: .5rem; font-size: .82rem; }
+.mv-key-list dd { display: flex; align-items: center; gap: .4rem; }
+@media (max-width: 36rem) {
+  .mv-row { flex-wrap: wrap; }
+  .mv-actions { margin-left: auto; }
+}

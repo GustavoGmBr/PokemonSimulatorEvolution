@@ -1,0 +1,110 @@
+/* Arena de batalha: cenário + plataforma + os Pokémon por cima, tudo na proporção 3:2 da imagem. */
+.battle-arena {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  background: #0b1020;
+  container-type: inline-size;
+}
+.battle-arena-layer {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.battle-arena-front { position: absolute; inset: 0; }
+
+/* Ponto onde alguém pisa: os pés ficam no ponto e o corpo cresce para cima. */
+.battle-arena-spot {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+.battle-arena-spot > * {
+  position: absolute;
+  left: 0;
+  bottom: -1.2cqw;
+  transform: translateX(-50%);
+}
+.battle-arena-spot::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 9cqw;
+  height: 2.2cqw;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: rgb(0 0 0 / .28);
+}
+
+/* Pokémon da batalha: quadro de 64px da folha de sprites (linha 1 = olhando à esquerda, 2 = à direita). */
+.battle-sprite {
+  display: block;
+  overflow: hidden;
+  aspect-ratio: 1;
+  width: 16cqw;
+  transform-origin: 50% 88%;
+  will-change: transform, filter, opacity;
+}
+.battle-sprite[data-side="adversario"] { width: 16cqw; }
+.battle-sprite > img {
+  position: absolute;
+  left: 0;
+  width: 400%;
+  max-width: none;
+  height: 400%;
+  image-rendering: pixelated;
+  top: -200%;
+}
+.battle-sprite[data-facing="esquerda"] > img { top: -100%; }
+.battle-sprite[data-facing] > img.battle-form-art { top: 0; width: 100%; height: 100%; object-fit: contain; }
+.battle-sprite[data-facing="direita"] > img.battle-form-art { scale: -1 1; }
+/* Camada de efeitos dos golpes: cobre a arena inteira. */
+.battle-fx-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  pointer-events: none;
+  z-index: 5;
+}
+.battle-arena-shaker { position: absolute; inset: 0; }
+
+/* Galeria de animações (#/animacoes) */
+.fx-gallery { max-width: 70rem; margin: 0 auto; padding: 1rem; display: grid; gap: .9rem; }
+.fx-gallery header { display: flex; flex-wrap: wrap; align-items: baseline; gap: .75rem 1.25rem; }
+.fx-gallery h1 { font-size: 1.35rem; font-weight: 700; }
+.fx-gallery header p { color: var(--muted-foreground); font-size: .85rem; }
+.fx-back { margin-left: auto; font-size: .85rem; text-decoration: underline; }
+.fx-types { display: flex; flex-wrap: wrap; gap: .35rem; }
+.fx-types button, .fx-sides button, .fx-list button {
+  border: 1px solid var(--border); border-radius: .5rem; background: var(--card, #fff); padding: .35rem .7rem; font-size: .82rem; cursor: pointer;
+}
+.fx-types button { border-left: .4rem solid var(--fx-color); }
+.fx-types button[aria-pressed="true"], .fx-sides button[aria-pressed="true"], .fx-list button[aria-pressed="true"] { background: var(--primary); color: var(--primary-foreground); }
+.fx-layout { display: grid; gap: 1rem; grid-template-columns: minmax(0, 2fr) minmax(14rem, 1fr); align-items: start; }
+@media (max-width: 48rem) { .fx-layout { grid-template-columns: minmax(0, 1fr); } }
+.fx-view { display: grid; gap: .5rem; }
+.fx-view .battle-arena { border: 2px solid var(--border); border-radius: .5rem; }
+.fx-sides { display: flex; gap: .4rem; }
+.fx-list { display: grid; gap: .35rem; }
+.fx-list button { width: 100%; display: flex; justify-content: space-between; gap: .5rem; text-align: left; }
+.fx-list span { opacity: .7; font-size: .75rem; }
+
+/* Estados do sprite na batalha (usam `translate`/`scale` para não brigar com o `transform` dos golpes). */
+.battle-sprite {
+  transition: opacity .45s ease, translate .45s ease, scale .35s ease;
+}
+.battle-sprite[data-state="fainted"] { opacity: 0; translate: 0 28%; }
+.battle-sprite[data-state="hidden"] { opacity: 0; scale: .2; }
+.battle-sprite[data-state="captured"] { opacity: 0; scale: .12; translate: 0 -10%; }
+.battle-sprite[data-state="idle"] > img { animation: battle-enter .4s ease-out; }
+@keyframes battle-enter { from { opacity: 0; transform: translateY(-10%) scale(.6); } to { opacity: 1; transform: none; } }

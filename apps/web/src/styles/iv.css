@@ -1,0 +1,16 @@
+/* IVs, estrelas e as cores dos casos especiais: dourado = brilhante, azul = 3★, vermelho = 4★. */
+[data-grade="shiny"] { --grade: #f5c518; --grade-dark: #6b4b00; --grade-ink: #8a5a00; }
+[data-grade="great"] { --grade: #3d9bff; --grade-dark: #0f4a99; --grade-ink: #1f6fd6; }
+[data-grade="perfect"] { --grade: #ff4d4d; --grade-dark: #8f1717; --grade-ink: #c42a2a; }
+
+.wild-stars { font-weight: 800; letter-spacing: .05em; color: #8b8f7a; }
+.wild-stars[data-stars="3"] { color: #1f6fd6; }
+.wild-stars[data-stars="4"] { color: #c42a2a; }
+.wild-iv { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .5rem; font-size: .85rem; }
+.wild-iv .wild-stars { font-size: 1.1rem; }
+.wild-grade { padding: .3rem .7rem; border: 2px solid var(--grade); border-radius: .7rem; background: color-mix(in srgb, var(--grade) 15%, white); color: var(--grade-ink); font-size: .8rem; font-weight: 800; text-align: center; }
+[data-slot="dialog-content"][data-grade] { box-shadow: 0 0 0 3px var(--grade), 0 1rem 2.5rem rgb(0 0 0 / .35); }
+.wild-legend { color: var(--grade-ink); font-weight: 800; }
+
+.iv-list .iv-max .dex-stat-track > span { background: #d9a400; }
+.wild-iv.wild-iv-left { justify-content: flex-start; }

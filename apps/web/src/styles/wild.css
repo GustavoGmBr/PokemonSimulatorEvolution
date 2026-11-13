@@ -1,0 +1,198 @@
+/* Selvagens: o mapa ocupa toda a área abaixo da barra superior. */
+.wild-stage {
+  position: relative;
+  isolation: isolate;
+  height: calc(100svh - 4.15rem);
+  min-height: 20rem;
+  overflow: hidden;
+  background: #1d281d;
+}
+.wild-view { position: absolute; inset: 0; overflow: hidden; }
+.wild-world { position: absolute; top: 0; left: 0; will-change: transform; }
+.wild-map { display: block; width: 100%; height: 100%; image-rendering: pixelated; user-select: none; }
+
+/* Cada personagem é um ponto (os pés) posicionado pelo simulador; o corpo fica acima desse ponto. */
+.wild-entity { position: absolute; top: 0; left: 0; width: 0; height: 0; transition: opacity .4s; }
+.wild-body { position: absolute; left: 0; bottom: 0; transform: translate(-50%, 6%); }
+.wild-body-pokemon { width: calc(var(--tile) * 2.6); }
+.wild-body-trainer { width: calc(var(--tile) * 1.5); }
+.wild-sprite {
+  display: block;
+  width: 100%;
+  background-size: 400% 400%;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 .15rem .1rem rgb(0 0 0 / .3));
+}
+.wild-body-pokemon .wild-sprite { aspect-ratio: 1; }
+.wild-body-trainer .wild-sprite { aspect-ratio: 2 / 3; }
+
+.wild-tag {
+  position: absolute;
+  top: calc(100% - .35rem);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: .05rem .4rem;
+  border-radius: 999px;
+  background: rgb(20 28 20 / .8);
+  color: #fff;
+  font-size: .68rem;
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.wild-prompt {
+  position: absolute;
+  bottom: 38%;
+  left: 50%;
+  display: none;
+  place-items: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  transform: translate(-50%, -100%);
+  border: 2px solid #fff;
+  border-radius: .4rem;
+  background: #202c21;
+  color: #fff;
+  font-size: .75rem;
+  font-weight: 800;
+}
+.wild-actor[data-near="true"] .wild-prompt { display: grid; }
+.wild-actor[data-near="true"] .wild-tag { background: #2f6b2f; }
+
+/* Painéis sobre o mapa. */
+.wild-hud { position: absolute; z-index: 1000000; left: .75rem; right: .75rem; display: flex; gap: .5rem; pointer-events: none; }
+.wild-hud > * { pointer-events: auto; }
+.wild-hud-top { top: .75rem; align-items: flex-start; justify-content: space-between; }
+.wild-hud-bottom { bottom: .75rem; flex-direction: column; align-items: flex-start; }
+.wild-chip {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .6rem;
+  padding: .45rem .7rem;
+  border-radius: .8rem;
+  background: rgb(251 252 247 / .92);
+  box-shadow: 0 .2rem .8rem rgb(0 0 0 / .25);
+  font-size: .85rem;
+}
+.wild-chip strong { font: 700 1rem/1 var(--font-display); letter-spacing: -.02em; }
+.wild-count { padding: .1rem .5rem; border-radius: 999px; background: #202c21; color: #fff; font-size: .75rem; font-weight: 700; }
+.wild-sub { color: var(--muted-foreground); font-size: .75rem; }
+.wild-help svg { width: 1rem; height: 1rem; }
+.wild-prompt-button { box-shadow: 0 .2rem .8rem rgb(0 0 0 / .35); }
+
+.wild-overlay { position: absolute; inset: 0; z-index: 1000001; display: grid; place-items: center; padding: 1rem; background: rgb(20 28 20 / .55); }
+.wild-overlay-solid { background: linear-gradient(#24331f, #1a2619); }
+.wild-card {
+  display: grid; justify-items: center; gap: .75rem; max-width: 30rem;
+  padding: 1.5rem 1.75rem; border-radius: 1.05rem; background: #fbfcf7; text-align: center;
+  box-shadow: 0 .6rem 2rem rgb(0 0 0 / .35);
+}
+.wild-card > svg { width: 2.5rem; height: 2.5rem; color: #667d5c; }
+.wild-card h2 { font: 700 1.5rem/1.1 var(--font-display); letter-spacing: -.03em; }
+.wild-card p { font-size: .9rem; color: var(--muted-foreground); }
+.wild-regions { display: flex; flex-wrap: wrap; justify-content: center; gap: .35rem; }
+.wild-regions svg { width: .8rem; height: .8rem; }
+
+.wild-dialog-body { display: grid; justify-items: center; gap: .6rem; }
+.wild-dialog-sprite {
+  position: relative; display: block; overflow: hidden; width: 8rem; aspect-ratio: 1; border-radius: .85rem;
+  background: radial-gradient(ellipse at center, #f6faef, #e0ead6);
+}
+.wild-dialog-sprite > img { position: absolute; top: 0; left: 0; width: 400%; max-width: none; height: 400%; image-rendering: pixelated; }
+.wild-shiny { display: inline-flex; align-items: center; gap: .2rem; color: #8a5a00; font-size: .75rem; font-weight: 700; }
+.wild-shiny svg { width: .85rem; height: .85rem; }
+
+/* Cores dos casos especiais (--grade): ver iv.css. */
+.wild-tag[data-grade] { background: var(--grade-dark); box-shadow: 0 0 0 1px var(--grade), 0 0 .6rem var(--grade); }
+/* Estrelas na etiqueta: sempre 4 casas, e a cor muda com a quantidade (1 cinza, 2 verde, 3 azul, 4 vermelho). */
+.wild-shiny-mark { margin-right: .25rem; color: #fcd34d; }
+.wild-rate { --rate: #e2e8f0; margin-right: .35rem; font-size: .8rem; letter-spacing: .04em; white-space: nowrap; }
+.wild-rate i { font-style: normal; }
+.wild-rate i:first-child { color: var(--rate); text-shadow: 0 0 .35rem var(--rate); }
+.wild-rate i:last-child { color: #fff; opacity: .35; }
+.wild-rate[data-stars="2"] { --rate: #4ade80; }
+.wild-rate[data-stars="3"] { --rate: #60a5fa; }
+.wild-rate[data-stars="4"] { --rate: #f87171; }
+.wild-body[data-grade] .wild-sprite {
+  filter: drop-shadow(0 0 .3rem var(--grade)) drop-shadow(0 0 .7rem var(--grade)) drop-shadow(0 .15rem .1rem rgb(0 0 0 / .3));
+}
+.wild-aura {
+  position: absolute; left: 50%; bottom: 0; z-index: -1; width: calc(var(--tile) * 3.4); aspect-ratio: 1;
+  transform: translate(-50%, 28%); border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, color-mix(in srgb, var(--grade) 55%, transparent) 0, transparent 68%);
+  animation: wild-pulse 1.6s ease-in-out infinite;
+}
+@keyframes wild-pulse { 0%, 100% { opacity: .55; scale: .9; } 50% { opacity: 1; scale: 1.08; } }
+[data-reduced-motion] .wild-aura { animation: none; opacity: .8; }
+
+.wild-alerts { position: absolute; top: 6.6rem; left: 50%; z-index: 1000002; display: grid; justify-items: center; gap: .4rem; width: min(34rem, calc(100% - 1.5rem)); transform: translateX(-50%); pointer-events: none; }
+.wild-alert {
+  display: flex; align-items: center; gap: .55rem; padding: .5rem .55rem .5rem .8rem; border: 2px solid var(--grade); border-radius: .9rem;
+  background: var(--grade-dark); color: #fff; font-size: .9rem; font-weight: 700; box-shadow: 0 .3rem 1.1rem rgb(0 0 0 / .4), 0 0 1rem var(--grade);
+  pointer-events: auto; animation: wild-alert-in .35s ease-out;
+}
+.wild-alert > svg { flex: none; width: 1.1rem; height: 1.1rem; color: var(--grade); }
+.wild-alert > button { display: grid; flex: none; place-items: center; width: 1.5rem; height: 1.5rem; margin-left: auto; border-radius: 999px; color: #fff; cursor: pointer; }
+.wild-alert > button:hover { background: rgb(255 255 255 / .2); }
+.wild-alert > button svg { width: .9rem; height: .9rem; }
+@keyframes wild-alert-in { from { opacity: 0; translate: 0 -.6rem; } }
+[data-reduced-motion] .wild-alert { animation: none; }
+
+.wild-top-left { display: grid; justify-items: start; gap: .45rem; min-width: 0; }
+.wild-top-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; }
+.wild-specials { display: flex; flex-wrap: wrap; gap: .3rem; margin: 0; padding: 0; list-style: none; }
+.wild-special {
+  display: inline-flex; align-items: center; gap: .3rem; padding: .15rem .55rem .15rem .3rem; border: 2px solid var(--grade); border-radius: 999px;
+  background: var(--grade-dark); color: #fff; font-size: .75rem; font-weight: 700; box-shadow: 0 .15rem .5rem rgb(0 0 0 / .3);
+}
+.wild-special b { color: var(--grade); }
+.wild-arrow { display: inline-grid; place-items: center; width: 1.2rem; height: 1.2rem; border-radius: 999px; background: var(--grade); color: #101010; }
+.wild-arrow[data-onscreen="true"] { display: none; }
+.wild-arrow svg { width: .85rem; height: .85rem; }
+
+
+/* ---------- Configuração da procura ---------- */
+.wild-setup { position: absolute; inset: 0; overflow-y: auto; padding: 1.25rem; background: linear-gradient(#24331f, #1a2619); }
+.wild-setup-inner { display: grid; gap: 1rem; max-width: 70rem; margin: 0 auto; }
+.wild-setup-header { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: .75rem; color: #f2f6ec; }
+.wild-setup-header h2 { font: 700 1.7rem/1.1 var(--font-display); letter-spacing: -.03em; }
+.wild-setup-header p { max-width: 42rem; margin-top: .3rem; color: #c6d3be; font-size: .9rem; }
+.wild-setup-header .wild-count { margin-left: .4rem; }
+.wild-setup-grid { display: grid; gap: 1rem; grid-template-columns: minmax(11rem, 15rem) minmax(0, 1fr); align-items: start; }
+.wild-setup-main { display: grid; gap: 1rem; min-width: 0; }
+@media (max-width: 40rem) { .wild-setup-grid { grid-template-columns: minmax(0, 1fr); } }
+
+.wild-region-list { display: grid; gap: .35rem; }
+.wild-choice {
+  display: grid; justify-items: start; gap: .2rem; padding: .55rem .75rem; border: 2px solid var(--border); border-radius: .8rem;
+  background: #fff; text-align: left; cursor: pointer; transition: border-color .12s, background-color .12s;
+}
+.wild-choice:hover:not(:disabled) { border-color: #9db48f; }
+.wild-choice[aria-checked="true"] { border-color: #3f6d34; background: #eaf3e2; }
+.wild-choice:disabled { opacity: .55; cursor: not-allowed; }
+.wild-choice strong { display: inline-flex; align-items: center; gap: .3rem; font-size: .9rem; }
+.wild-choice span { display: inline-flex; align-items: center; gap: .25rem; color: var(--muted-foreground); font-size: .75rem; }
+.wild-choice svg { width: .8rem; height: .8rem; }
+
+.wild-facts { display: grid; gap: .35rem; margin: 0; padding: 0; list-style: none; font-size: .9rem; }
+.wild-facts small { color: var(--muted-foreground); }
+.wild-locked { display: flex; align-items: center; gap: .4rem; color: var(--muted-foreground); }
+.wild-locked svg { width: 1rem; height: 1rem; }
+
+.wild-field { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; }
+.wild-field-label { font-size: .85rem; font-weight: 700; }
+.wild-stepper { display: flex; align-items: center; gap: .3rem; }
+.wild-level-input { width: 4.5rem; text-align: center; }
+.wild-note { display: flex; align-items: center; gap: .35rem; color: var(--muted-foreground); font-size: .78rem; }
+.wild-note svg { flex: none; width: .85rem; height: .85rem; }
+.wild-map-grid { display: grid; gap: .5rem; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); }
+.wild-map-thumb { display: block; width: 100%; aspect-ratio: 16 / 9; border-radius: .55rem; background-color: #dfe8d6; background-size: cover; background-position: center; image-rendering: pixelated; }
+.wild-choice:disabled .wild-map-thumb { filter: grayscale(.8); }
+.wild-search-button { justify-self: start; margin-top: .25rem; }
+
+.wild-prompt-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem; }
+
+/* Captura direta: a bola voa por cima do mapa e o Pokémon é engolido por ela (ou escapa e foge). */
+.ball-fx-layer { position: fixed; inset: 0; z-index: 70; pointer-events: none; }
+.wild-actor .wild-body { transition: opacity .55s ease, scale .55s ease, translate .6s ease; transform-origin: 50% 45%; }
+.wild-actor[data-capture="absorbed"] .wild-body { opacity: 0; scale: .12; }
+.wild-actor[data-capture="fled"] .wild-body { opacity: 0; scale: .7; translate: 0 -30%; }

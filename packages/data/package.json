@@ -1,0 +1,19 @@
+{
+  "name": "@pokesim-evolution/data",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./training": "./catalog/training.json",
+    "./itemdex": "./catalog/pokeapi-items.json",
+    "./arenas": "./src/arenas.ts",
+    "./battle-data": "./src/battle-data.ts",
+    "./battle-tms": "./src/battle-tms.ts",
+    "./challenges": "./catalog/challenges.json",
+    "./pokedex": "./src/pokedex.ts",
+    "./pokedex-details": "./src/pokedex-details.ts",
+    "./shop-items": "./src/shop-items.ts",
+    "./wild-maps": "./src/wild-maps.ts",
+    "./wild-species": "./src/wild-species.ts"
+  }
+}
