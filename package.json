@@ -1,6 +1,6 @@
 {
   "name": "pokemon-simulator-evolution",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "workspaces": [
@@ -10,9 +10,13 @@
   "scripts": {
     "dev": "npm run dev -w @pokesim-evolution/web --",
     "build": "npm run build -w @pokesim-evolution/web --",
-    "typecheck": "npm run typecheck -w @pokesim-evolution/web",
-    "test": "npm test -w @pokesim-evolution/web",
-    "build:exe": "node scripts/build-exe.mjs",
+    "start": "npm run build && npm start -w @pokesim-evolution/server",
+    "typecheck": "npm run typecheck -w @pokesim-evolution/web && npm run typecheck -w @pokesim-evolution/server",
+    "test": "npm test -w @pokesim-evolution/web && npm test -w @pokesim-evolution/server",
+    "build:release": "node scripts/build-release.mjs",
     "test:launcher": "cd launcher && go test ./..."
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
   }
 }

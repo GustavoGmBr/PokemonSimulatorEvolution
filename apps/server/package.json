@@ -1,6 +1,12 @@
 {
   "name": "@pokesim-evolution/server",
-  "version": "0.1.0",
+  "version": "1.1.0",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "description": "Servidor local do jogo: interface, recursos e saves em SQLite (node:sqlite).",
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning src/main.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "node --disable-warning=ExperimentalWarning --test src/*.test.ts"
+  }
 }

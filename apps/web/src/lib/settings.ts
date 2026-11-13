@@ -1,6 +1,7 @@
 // Preferências do jogador, guardadas neste navegador (valem para todos os saves).
 // "Reduzir animações" tem o seu próprio hook (use-motion-preference.ts).
 import { useSyncExternalStore } from 'react';
+import { gameStorage } from './game-storage.ts';
 
 export const themes = [
   { id: 'auto', label: 'Automático', description: 'Segue o claro/escuro do sistema.', swatch: ['#f5f4eb', '#294429'] },
@@ -74,7 +75,7 @@ let snapshot: Settings | null = null;
 let snapshotRaw: string | null = null;
 
 function rawSettings() {
-  try { return typeof localStorage === 'undefined' ? null : localStorage.getItem(storageKey); } catch { return null; }
+  try { return gameStorage.getItem(storageKey); } catch { return null; }
 }
 
 export function getSettings(): Settings {
@@ -85,7 +86,7 @@ export function getSettings(): Settings {
 
 export function updateSettings(patch: Partial<Settings>) {
   const next = readSettings(JSON.stringify({ ...getSettings(), ...patch }));
-  try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch { /* sem armazenamento: vale só nesta sessão */ }
+  try { gameStorage.setItem(storageKey, JSON.stringify(next)); } catch { /* sem armazenamento: vale só nesta sessão */ }
   snapshot = next;
   snapshotRaw = rawSettings();
   window.dispatchEvent(new Event(changeEvent));

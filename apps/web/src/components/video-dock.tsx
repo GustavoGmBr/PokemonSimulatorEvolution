@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { embedUrl } from '@/lib/youtube-url';
+import { gameStorage } from '@/lib/game-storage';
 
 const storageKey = 'pokesim-evolution:video-dock';
 
@@ -8,7 +9,7 @@ type Saved = { url: string; open: boolean };
 function load(): Saved {
   const open = false;
   try {
-    const parsed = JSON.parse(localStorage.getItem(storageKey) ?? '{}') as Partial<Saved>;
+    const parsed = JSON.parse(gameStorage.getItem(storageKey) ?? '{}') as Partial<Saved>;
     return { url: typeof parsed.url === 'string' ? parsed.url : '', open: typeof parsed.open === 'boolean' ? parsed.open : open };
   } catch {
     return { url: '', open };
@@ -16,7 +17,7 @@ function load(): Saved {
 }
 
 function save(value: Saved) {
-  try { localStorage.setItem(storageKey, JSON.stringify(value)); } catch { /* sem armazenamento: vale só nesta sessão */ }
+  try { gameStorage.setItem(storageKey, JSON.stringify(value)); } catch { /* sem armazenamento: vale só nesta sessão */ }
 }
 
 /** Player do YouTube flutuante no canto: música, vídeos ou lives enquanto joga (ligado em Opções). */

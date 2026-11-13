@@ -3,6 +3,7 @@
 //  - teclas de explorar o mapa dos Selvagens (andar, interagir, capturar).
 // As teclas dos golpes na batalha têm a sua própria loja em battle-keys.ts.
 import { useSyncExternalStore } from 'react';
+import { gameStorage } from './game-storage.ts';
 
 export const exploreActions = [
   { id: 'up', label: 'Andar para cima', fallback: 'W' },
@@ -83,7 +84,7 @@ let snapshotRaw: string | null = null;
 let version = 0;
 
 function rawControls() {
-  try { return typeof localStorage === 'undefined' ? null : localStorage.getItem(storageKey); } catch { return null; }
+  try { return gameStorage.getItem(storageKey); } catch { return null; }
 }
 
 function current(): Stored {
@@ -109,7 +110,7 @@ export function getExploreKeys(): ExploreKeys {
 }
 
 function store(next: Stored) {
-  try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch { /* sem armazenamento: vale só nesta sessão */ }
+  try { gameStorage.setItem(storageKey, JSON.stringify(next)); } catch { /* sem armazenamento: vale só nesta sessão */ }
   snapshot = next;
   snapshotRaw = rawControls();
   version += 1;

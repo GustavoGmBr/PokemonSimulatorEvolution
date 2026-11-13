@@ -4,6 +4,7 @@ import { newCollection, pokedexTotal, readCollection, type Collection } from './
 import { readMarket, type MarketStock } from './market';
 import { readCasinoRound, type CasinoRound } from './casino';
 import type { MissionState } from './missions';
+import { gameStorage } from './game-storage.ts';
 
 export { pokedexTotal };
 
@@ -190,7 +191,7 @@ function readChallengeProgress(value: unknown): ChallengeProgress {
   };
 }
 
-export function loadSaves(storage: Storage): JourneySave[] {
+export function loadSaves(storage: Pick<Storage, 'getItem'>): JourneySave[] {
   const raw = storage.getItem(savesKey);
   if (raw === null) {
     const legacy = storage.getItem(legacyKey);
@@ -224,8 +225,8 @@ export function loadSaves(storage: Storage): JourneySave[] {
 
 export async function updateSaves(change: (current: JourneySave[]) => JourneySave[]) {
   const write = () => {
-    const saves = change(loadSaves(localStorage));
-    localStorage.setItem(savesKey, JSON.stringify({ version, saves }));
+    const saves = change(loadSaves(gameStorage));
+    gameStorage.setItem(savesKey, JSON.stringify({ version, saves }));
     return saves;
   };
 

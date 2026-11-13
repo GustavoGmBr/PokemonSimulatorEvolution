@@ -18,7 +18,7 @@ O servidor vai aplicar as regras do motor aos dados do catálogo e guardar o res
 
 ## Estado inicial
 
-O projeto está organizado como um monorepo com npm workspaces. A tela inicial usa React, TypeScript, Vite e shadcn/ui. Cada jornada guarda o nome do treinador, seu sprite e o Pokémon inicial no navegador. O seletor lista os PNGs de `recursos/Treinadores/` e permite pesquisar pelo nome do arquivo. A API e as mecânicas entram nas próximas etapas.
+O projeto está organizado como um monorepo com npm workspaces. A tela inicial usa React, TypeScript, Vite e shadcn/ui. Cada jornada guarda o nome do treinador, seu sprite e o Pokémon inicial (no banco SQLite do servidor local; no modo de desenvolvimento, no navegador). O seletor lista os PNGs de `recursos/Treinadores/` e permite pesquisar pelo nome do arquivo. A API e as mecânicas entram nas próximas etapas.
 
 Em **Gerenciar saves**, selecione uma jornada para abri-la ou use o menu de contexto para abrir, exportar ou excluir. **Exportar todos** baixa um backup JSON. **Importar saves** aceita backups individuais ou completos do Evolution e adiciona cópias às jornadas já existentes.
 
@@ -41,16 +41,28 @@ Abra o endereço indicado pelo Vite. Use `npm run typecheck` para checar os tipo
 
 ## Executável para Windows (bandeja)
 
-`PokemonSimulatorEvolution.exe` é um launcher em Go (`launcher/`) que embute a interface compilada, serve o jogo em **http://127.0.0.1:34600** (a mesma porta do Remake; se estiver ocupada usa a próxima livre), fica escondido na bandeja do Windows e se atualiza pelas Releases do GitHub.
+O pacote do Windows segue o mesmo esquema do Pokémon Simulator Remake: um **launcher** pequeno, o **Node.js embutido** e o servidor do jogo, com os saves num banco **SQLite**.
 
-- **Ao abrir:** procura uma versão mais nova (com verificação SHA-256), instala, reinicia sozinho e abre o navegador. Depois verifica a cada 6 horas e avisa na bandeja.
-- **Menu da bandeja:** abrir o jogo (clique simples), verificar/instalar atualização, iniciar com o Windows, abrir a pasta de recursos e a de logs (`%AppData%\PokemonSimulatorEvolution`), sair.
-- **Recursos:** as imagens e músicas não vão dentro do `.exe`; ele procura `recursos/` ao lado dele (ou use `--recursos=CAMINHO` / `POKESIM_RECURSOS`).
-- **Opções de linha de comando:** `--background` (não abre o navegador), `--no-update`, `--stop` (encerra o jogo aberto), `--recursos=`.
-- **Saves:** ficam no `localStorage` do navegador, por endereço. Por isso a porta fixa importa: sempre `127.0.0.1:34600`. Saves feitos em `localhost:5173` (`npm run dev`) precisam ser exportados e importados.
-- **Compilar:** com Go 1.24+ e Node 22, `npm run build:exe` gera o `.exe` na raiz; `npm run test:launcher` roda os testes do launcher (`go test`). O ícone e o manifesto do `.exe` vêm de `launcher/rsrc_windows_amd64.syso` (gerado por `go run ./tools/winres` dentro de `launcher/`).
-- **Pacote completo:** a release traz `PokemonSimulatorEvolution-vX.Y.Z-full-win-x64.zip` (pasta com o `.exe` + `recursos/`), além do `.exe` e do `.sha256` usados pela atualização automática. O `recursos/` fica fora da `main`: o workflow o lê da branch `recursos` (arquivos `.zip` com a pasta `recursos/` dentro).
-- **Publicar uma versão:** aumente `version` em `package.json` (e `apps/web/package.json`), escreva `RELEASE_NOTES.md`, faça o commit e crie a tag `vX.Y.Z`. O GitHub Actions (`.github/workflows/release.yml`) compila, testa e cria a release com o `.exe` e o `.sha256`.
+```
+PokemonSimulatorEvolution/
+  PokemonSimulatorEvolution.exe   launcher (bandeja do Windows; Go, em launcher/)
+  runtime/node.exe                Node.js do pacote (o jogador não instala nada)
+  app/server.mjs                  servidor do jogo (apps/server, empacotado com esbuild)
+  app/web/                        interface (apps/web compilada)
+  recursos/                       imagens e músicas (fora da main; vêm da branch "recursos")
+  saves/game.db                   banco SQLite com saves e preferências (+ saves/backups/)
+  LEIAME.md, distribution.json
+```
+
+- **Launcher:** inicia `runtime\node.exe app\server.mjs` sem janela, espera a linha `Jogo pronto: http://127.0.0.1:PORTA/`, abre o navegador e fica na bandeja. A porta é **34600**, a mesma do Remake (se estiver ocupada, usa a próxima livre). Ao sair, pede ao servidor que feche o banco (`stop` na entrada padrão).
+- **Atualização:** ao abrir procura uma versão mais nova nas Releases (SHA-256 conferido), baixa `PokemonSimulatorEvolution-vX.Y.Z-update-win-x64.zip`, troca `app\` e o `.exe` e reinicia. Saves, `recursos\` e `runtime\` não são tocados. Depois verifica a cada 6 horas e avisa na bandeja.
+- **Menu da bandeja:** abrir o jogo, verificar/instalar atualização, iniciar com o Windows, abrir as pastas de recursos, saves e logs (`%AppData%\PokemonSimulatorEvolution`), sair.
+- **Linha de comando:** `--background` (não abre o navegador), `--no-update`, `--stop` (encerra o jogo aberto), `--recursos=`.
+- **Saves em SQLite:** `apps/server` grava em `saves/game.db` (`node:sqlite`, migrações em `db.ts`; uma linha por jornada em `saves`, preferências em `settings`). A cada início o servidor faz um backup consistente em `saves/backups/` (os 5 últimos). A interface (`lib/game-storage.ts`) lê o banco ao abrir e envia cada alteração; na primeira abertura envia uma única vez o que o navegador já guardava (`localStorage`), então saves da versão 1.0.0 não se perdem. Sem servidor (`npm run dev`) ela volta a usar o `localStorage`.
+- **Rodar a partir do código:** `npm start` compila a interface e sobe o servidor em http://127.0.0.1:34600 (banco em `apps/server/data/`, recursos em `./recursos`). Variáveis: `POKESIM_HOME`, `POKESIM_PORT`, `DB_PATH`, `RECURSOS_DIR`, `WEB_DIST`.
+- **Gerar os pacotes:** com Node 22+ e Go 1.24+, `npm run build:release -- --recursos=./recursos` cria em `dist/release/` o `full` (pasta do jogo completa) e o `update`, cada um com `.sha256`. O launcher é compilado para Windows de qualquer sistema; o `node.exe` é baixado (e conferido) da mesma versão do Node que roda o script, ou use `--node=CAMINHO\node.exe`. Testes: `npm test` (interface + servidor) e `npm run test:launcher`.
+- **Publicar uma versão:** aumente `version` em `package.json` (e `apps/web/package.json`), escreva `RELEASE_NOTES.md` e envie para a `main`. O GitHub Actions (`.github/workflows/release.yml`) testa, monta os pacotes (lendo `recursos` da branch `recursos`) e cria a release `vX.Y.Z`.
+- O ícone e o manifesto do `.exe` vêm de `launcher/rsrc_windows_amd64.syso` (gerado por `go run ./tools/winres` dentro de `launcher/`).
 
 ## Batalhas
 
@@ -76,4 +88,4 @@ A área **Opções** reúne as preferências, guardadas neste navegador e valend
 - **Player de vídeo:** painel do YouTube no canto da tela (links de vídeo, live, short ou playlist), ligado e desligado aqui.
 - **Controles:** teclas de andar/interagir/capturar nos Selvagens, teclas da batalha e atalhos Ctrl/⌘ do menu. Clique na tecla e aperte a nova; se ela já tinha dono, as duas ações trocam. `Ctrl T/W/N/C/V/Z` são recusadas (reservadas pelo navegador ou pelo texto). Setas e Enter continuam funcionando ao explorar.
 
-`npm test -w @pokesim-evolution/web` roda os testes unitários (`node --test`).
+`npm test` roda os testes unitários da interface e do servidor (`node --test`).

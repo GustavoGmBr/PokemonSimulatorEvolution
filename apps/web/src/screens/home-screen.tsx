@@ -9,6 +9,7 @@ import { createSave, loadSaves, savesKey, starterSpeciesIds, updateSaves, type G
 import { JourneySetup } from './journey-setup';
 import { SaveManager } from './save-manager';
 import cover from '@/assets/kanto-cover.webp';
+import { gameStorage } from '@/lib/game-storage';
 
 export function HomeScreen({ onPlay, unavailable }: {
   onPlay: (save: JourneySave) => void;
@@ -129,7 +130,7 @@ export function HomeScreen({ onPlay, unavailable }: {
 
 function readStoredSaves() {
   try {
-    return { saves: loadSaves(localStorage), error: '' };
+    return { saves: loadSaves(gameStorage), error: '' };
   } catch {
     return { saves: [], error: 'Não foi possível ler os saves deste navegador.' };
   }

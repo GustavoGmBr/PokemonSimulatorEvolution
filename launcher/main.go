@@ -1,11 +1,16 @@
-// Launcher do Pokémon Simulator Evolution: serve o jogo em http://127.0.0.1:34600, fica na bandeja do Windows
-// (sem janela) e se atualiza pelas Releases do GitHub. As imagens e músicas vêm da pasta recursos/ ao lado do executável.
+// Launcher do Pokémon Simulator Evolution: inicia o servidor do jogo (Node.js embutido + SQLite) em http://127.0.0.1:34600,
+// fica na bandeja do Windows (sem janela) e se atualiza pelas Releases do GitHub. Mesmo esquema do Pokémon Simulator Remake:
+//
+//	PokemonSimulatorEvolution.exe   este programa
+//	runtime\node.exe                Node.js (o jogador não instala nada)
+//	app\server.mjs, app\web\         servidor do jogo e interface
+//	recursos\                       imagens e músicas
+//	saves\game.db                   banco SQLite com os saves (backups em saves\backups)
 package main
 
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -152,6 +157,7 @@ const (
 	cmdUpdate
 	cmdAutostart
 	cmdRecursos
+	cmdSaves
 	cmdLogs
 	cmdQuit
 )
@@ -159,12 +165,14 @@ const (
 type app struct {
 	opts     options
 	exe      string
-	dir      string
+	root     string // pasta do jogo (onde está o .exe)
+	dir      string // logs
 	recursos string
 	port     int
 	logger   *log.Logger
 	upd      *updater
-	httpSrv  *http.Server
+
+	game *gameServer
 
 	mu      sync.Mutex
 	pending *ghRelease // atualização encontrada e ainda não instalada
@@ -172,11 +180,25 @@ type app struct {
 	notice  string
 }
 
-func (a *app) url() string { return "http://127.0.0.1:" + strconv.Itoa(a.port) + "/" }
+func (a *app) url() string {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return "http://127.0.0.1:" + strconv.Itoa(a.port) + "/"
+}
+
+func (a *app) running() bool {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.port != 0
+}
 
 func (a *app) logf(format string, args ...any) { a.logger.Printf(format, args...) }
 
 func (a *app) openGame() {
+	if !a.running() {
+		trayNotify("Pokémon Simulator Evolution", "O jogo ainda está iniciando…")
+		return
+	}
 	if err := openTarget(a.url()); err != nil {
 		a.logf("não foi possível abrir o navegador: %v", err)
 		trayNotify("Pokémon Simulator Evolution", "Abra no navegador: "+a.url())
@@ -184,6 +206,9 @@ func (a *app) openGame() {
 }
 
 func (a *app) tooltip() string {
+	if !a.running() {
+		return "Pokémon Simulator Evolution — iniciando…"
+	}
 	text := "Pokémon Simulator Evolution — " + strings.TrimPrefix(a.url(), "http://")
 	if a.port != preferredPort {
 		text += " (porta " + strconv.Itoa(preferredPort) + " em uso)"
@@ -219,6 +244,7 @@ func (a *app) menu() []menuItem {
 		{divider: true},
 		{id: cmdAutostart, text: "Iniciar com o Windows", checked: autostartEnabled()},
 		recursos,
+		{id: cmdSaves, text: "Abrir a pasta dos saves"},
 		{id: cmdLogs, text: "Abrir a pasta de logs"},
 		{divider: true},
 		{id: cmdQuit, text: "Sair"},
@@ -240,6 +266,10 @@ func (a *app) handle(id int) {
 		if a.recursos != "" {
 			_ = openTarget(a.recursos)
 		}
+	case cmdSaves:
+		saves := filepath.Join(a.root, "saves")
+		_ = os.MkdirAll(saves, 0o755)
+		_ = openTarget(saves)
 	case cmdLogs:
 		_ = openTarget(a.dir)
 	case cmdQuit:
@@ -261,13 +291,18 @@ func (a *app) updateNow() {
 	a.mu.Unlock()
 	defer func() { a.mu.Lock(); a.busy = false; a.mu.Unlock() }()
 
-	ctx, cancel := withTimeout(300)
+	ctx, cancel := withTimeout(600)
 	defer cancel()
+	stopped := false
+	a.upd.beforeApply = func() { stopped = true; a.stopGame() }
 	latest, installed, err := a.upd.check(ctx, true)
 	switch {
 	case err != nil:
 		a.logf("atualização: %v", err)
 		trayNotify("Pokémon Simulator Evolution", "Não foi possível atualizar agora. Veja o log.")
+		if stopped { // a troca falhou depois de parar o jogo: volta a abri-lo
+			a.startGame()
+		}
 	case !installed:
 		trayNotify("Pokémon Simulator Evolution", "Você já está na versão mais recente ("+version+").")
 	default:
@@ -275,7 +310,7 @@ func (a *app) updateNow() {
 	}
 }
 
-// relaunch inicia a versão nova e encerra esta.
+// relaunch inicia a versão nova e encerra esta (o servidor já foi parado antes de trocar os arquivos).
 func (a *app) relaunch(latest string) {
 	args := []string{"--updated"}
 	if a.opts.background || a.opts.noBrowser {
@@ -285,6 +320,7 @@ func (a *app) relaunch(latest string) {
 		args = append(args, "--recursos="+a.opts.recursos)
 	}
 	trayNotify("Pokémon Simulator Evolution", "Atualizado para a versão "+latest+". Reiniciando…")
+	a.stopGame()
 	if err := restart(a.exe, args...); err != nil {
 		a.logf("não foi possível reiniciar: %v", err)
 		trayNotify("Pokémon Simulator Evolution", "Atualizado para "+latest+". Abra o programa de novo.")
@@ -292,10 +328,47 @@ func (a *app) relaunch(latest string) {
 	trayQuit()
 }
 
-// startup procura atualização antes de abrir o navegador (para o jogador não abrir a versão velha) e abre o jogo.
+// startGame sobe o servidor do jogo (Node + SQLite) e guarda a porta em que ele ficou.
+func (a *app) startGame() bool {
+	game, err := startServer(serverConfig{root: a.root, recursos: a.recursos, log: a.logf})
+	if err != nil {
+		a.logf("não foi possível iniciar o jogo: %v", err)
+		showError("Pokémon Simulator Evolution", "Não foi possível iniciar o jogo.\n\n"+err.Error()+"\n\nVeja o log em "+filepath.Join(a.dir, "launcher.log"))
+		return false
+	}
+	a.mu.Lock()
+	a.game, a.port = game, game.port
+	a.mu.Unlock()
+	if game.port != preferredPort {
+		a.logf("porta %d em uso; usando %d", preferredPort, game.port)
+	}
+	a.logf("jogo pronto: %s", a.url())
+	go func() {
+		<-game.exited()
+		if !game.wasStopped() {
+			a.logf("o servidor do jogo parou sozinho")
+			showError("Pokémon Simulator Evolution", "O servidor do jogo parou inesperadamente. Abra o programa de novo; seus saves estão em saves\\game.db.")
+			trayQuit()
+		}
+	}()
+	return true
+}
+
+// stopGame fecha o servidor (e o banco) com calma.
+func (a *app) stopGame() {
+	a.mu.Lock()
+	game := a.game
+	a.game, a.port = nil, 0
+	a.mu.Unlock()
+	if game != nil {
+		game.stop()
+	}
+}
+
+// startup procura atualização antes de iniciar o jogo (para o jogador não abrir a versão velha), inicia o servidor e abre o navegador.
 func (a *app) startup() {
 	if a.updatesEnabled() && !a.opts.updated {
-		ctx, cancel := withTimeout(20)
+		ctx, cancel := withTimeout(120)
 		latest, installed, err := a.upd.check(ctx, true)
 		cancel()
 		switch {
@@ -305,6 +378,10 @@ func (a *app) startup() {
 			a.relaunch(latest)
 			return
 		}
+	}
+	if !a.startGame() {
+		trayQuit()
+		return
 	}
 	if !a.opts.background && !a.opts.noBrowser {
 		a.openGame()
@@ -372,37 +449,17 @@ func main() {
 	}
 	defer releaseInstance()
 
-	a := &app{opts: opts, exe: exe, dir: dir, logger: logger}
-	a.recursos = findRecursos(opts.recursos, filepath.Dir(exe))
-	logger.Printf("recursos: %q", a.recursos)
-	a.upd = &updater{exe: exe, log: logger.Printf}
+	a := &app{opts: opts, exe: exe, root: filepath.Dir(exe), dir: dir, logger: logger}
+	if home := os.Getenv("POKESIM_HOME"); home != "" {
+		a.root = home
+	}
+	a.recursos = findRecursos(opts.recursos, a.root)
+	logger.Printf("pasta do jogo: %q; recursos: %q", a.root, a.recursos)
+	a.upd = &updater{exe: exe, root: a.root, log: logger.Printf}
 	a.upd.installed, _ = parseSemver(version)
-
-	srv, err := newServer(a.recursos, trayQuit)
-	if err != nil {
-		showError("Pokémon Simulator Evolution", err.Error())
-		os.Exit(1)
-	}
-	listener, port, err := listen(preferredPort)
-	if err != nil {
-		logger.Printf("sem porta livre: %v", err)
-		showError("Pokémon Simulator Evolution", "Não encontrei uma porta livre entre "+strconv.Itoa(preferredPort)+" e "+strconv.Itoa(preferredPort+portAttempts-1)+".")
-		os.Exit(1)
-	}
-	a.port, srv.port = port, port
-	if port != preferredPort {
-		logger.Printf("porta %d em uso; usando %d (os saves ficam por endereço no navegador)", preferredPort, port)
-	}
-	a.httpSrv = httpServer(srv)
-	go func() {
-		if err := a.httpSrv.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Printf("servidor: %v", err)
-		}
-	}()
-	logger.Printf("jogo pronto: %s", a.url())
 
 	go a.startup()
 	runTray(a) // bloqueia até "Sair"
-	_ = a.httpSrv.Close()
+	a.stopGame()
 	logger.Printf("encerrado")
 }

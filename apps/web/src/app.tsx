@@ -8,6 +8,7 @@ import { HomeScreen } from '@/screens/home-screen';
 import { GameScreen } from '@/screens/game/game-screen';
 import { gameUrl, readGameUrl } from '@/screens/game/game-navigation';
 import { FxGalleryScreen } from '@/screens/fx-gallery-screen';
+import { gameStorage } from '@/lib/game-storage';
 
 function subscribeToRoute(listener: () => void) {
   window.addEventListener('hashchange', listener);
@@ -20,7 +21,7 @@ function getRoute() {
 
 function findSave(id: string) {
   try {
-    return loadSaves(localStorage).find((save) => save.id === id);
+    return loadSaves(gameStorage).find((save) => save.id === id);
   } catch {
     return undefined;
   }

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -9,8 +11,10 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
+	"time"
 )
 
 func mustSemver(t *testing.T, text string) semver {
@@ -48,15 +52,19 @@ func release(tag string, draft bool, assets ...string) ghRelease {
 	return r
 }
 
+func updateAssets(tag string) []string {
+	return []string{updateAsset(tag), updateAsset(tag) + ".sha256"}
+}
+
 func TestPickRelease(t *testing.T) {
-	full := []string{assetName, assetName + ".sha256"}
 	releases := []ghRelease{
-		release("v1.1.0", false, full...),
-		release("v1.2.0", true, full...),                 // rascunho
-		release("v1.3.0", false, assetName),              // sem checksum
-		release("v1.4.0-beta.1", false, full...),         // pré-lançamento
-		release("v0.9.0", false, full...),                // antiga
-		release("not-a-version", false, full...),
+		release("v1.1.0", false, updateAssets("v1.1.0")...),
+		release("v1.2.0", true, updateAssets("v1.2.0")...),                      // rascunho
+		release("v1.3.0", false, updateAsset("v1.3.0")),                         // sem checksum
+		release("v1.4.0-beta.1", false, updateAssets("v1.4.0-beta.1")...),       // pré-lançamento
+		release("v0.9.0", false, updateAssets("v0.9.0")...),                     // antiga
+		release("v1.5.0", false, assetPrefix+".exe", assetPrefix+".exe.sha256"), // formato antigo (só o .exe)
+		release("not-a-version", false, updateAssets("not-a-version")...),
 	}
 	got, version, ok := pickRelease(releases, mustSemver(t, "1.0.0"))
 	if !ok || got.Tag != "v1.1.0" || version.String() != "1.1.0" {
@@ -74,7 +82,7 @@ func TestVerifyChecksum(t *testing.T) {
 	data := []byte("conteudo")
 	sum := sha256.Sum256(data)
 	hash := hex.EncodeToString(sum[:])
-	if err := verifyChecksum(data, hash+"  "+assetName+"\n"); err != nil {
+	if err := verifyChecksum(data, hash+"  pacote.zip\n"); err != nil {
 		t.Errorf("checksum válido recusado: %v", err)
 	}
 	if err := verifyChecksum([]byte("outro"), hash); err == nil {
@@ -102,34 +110,149 @@ func TestReplaceExecutable(t *testing.T) {
 	}
 }
 
+// ---- pacote de atualização ----
+
+func makeZip(t *testing.T, files map[string][]byte) []byte {
+	t.Helper()
+	var buffer bytes.Buffer
+	writer := zip.NewWriter(&buffer)
+	for name, data := range files {
+		entry, err := writer.Create(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, _ = entry.Write(data)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return buffer.Bytes()
+}
+
+func bigExe() []byte { return bytes.Repeat([]byte("x"), 2<<20) }
+
+// installation cria uma pasta do jogo como a do pacote completo.
+func installation(t *testing.T) (root, exe string) {
+	t.Helper()
+	root = t.TempDir()
+	for name, content := range map[string]string{
+		"app/server.mjs": "velho", "app/web/index.html": "velho", "app/web/assets/antigo.js": "x",
+		"saves/game.db": "SAVES", "recursos/Pokemons/1.png": "png", "runtime/node.exe": "node",
+	} {
+		full := filepath.Join(root, filepath.FromSlash(name))
+		_ = os.MkdirAll(filepath.Dir(full), 0o755)
+		_ = os.WriteFile(full, []byte(content), 0o644)
+	}
+	exe = filepath.Join(root, exeName)
+	_ = os.WriteFile(exe, []byte("exe antigo"), 0o755)
+	return root, exe
+}
+
+func read(t *testing.T, path string) string {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "<ausente>"
+	}
+	return string(data)
+}
+
+func TestApplyUpdate(t *testing.T) {
+	root, exe := installation(t)
+	archive := makeZip(t, map[string][]byte{
+		exeName: bigExe(), "app/server.mjs": []byte("novo"), "app/web/index.html": []byte("novo"), "app/web/assets/novo.js": []byte("y"),
+		"LEIAME.md": []byte("leia"), "distribution.json": []byte("{}"),
+	})
+	if err := applyUpdate(root, exe, archive); err != nil {
+		t.Fatal(err)
+	}
+	if read(t, filepath.Join(root, "app/server.mjs")) != "novo" || read(t, filepath.Join(root, "app/web/assets/novo.js")) != "y" {
+		t.Error("app/ não foi atualizada")
+	}
+	if read(t, filepath.Join(root, "app/web/assets/antigo.js")) != "<ausente>" {
+		t.Error("arquivo antigo de app/ sobrou")
+	}
+	if read(t, filepath.Join(root, "saves/game.db")) != "SAVES" || read(t, filepath.Join(root, "recursos/Pokemons/1.png")) != "png" || read(t, filepath.Join(root, "runtime/node.exe")) != "node" {
+		t.Error("saves, recursos ou runtime foram alterados")
+	}
+	if read(t, filepath.Join(root, "LEIAME.md")) != "leia" || read(t, filepath.Join(root, "distribution.json")) != "{}" {
+		t.Error("documentos não foram atualizados")
+	}
+	if len(read(t, exe)) != 2<<20 || read(t, exe+".old") != "exe antigo" {
+		t.Error("executável não foi trocado")
+	}
+	for _, leftover := range []string{"update.tmp", "app.old"} {
+		if _, err := os.Stat(filepath.Join(root, leftover)); err == nil {
+			t.Errorf("sobrou %s", leftover)
+		}
+	}
+}
+
+func TestApplyUpdateRejectsBadPackages(t *testing.T) {
+	good := map[string][]byte{"app/server.mjs": []byte("novo"), "app/web/index.html": []byte("novo")}
+	with := func(extra string, data []byte) map[string][]byte {
+		files := map[string][]byte{}
+		for k, v := range good {
+			files[k] = v
+		}
+		files[extra] = data
+		return files
+	}
+	cases := map[string][]byte{
+		"fora da pasta":      makeZip(t, with("../fora.txt", []byte("x"))),
+		"saves":              makeZip(t, with("saves/game.db", []byte("x"))),
+		"recursos":           makeZip(t, with("recursos/a.png", []byte("x"))),
+		"unidade":            makeZip(t, with("C:/Windows/x.dll", []byte("x"))),
+		"sem interface":      makeZip(t, map[string][]byte{"app/server.mjs": []byte("novo")}),
+		"exe pequeno demais": makeZip(t, with(exeName, []byte("curto"))),
+		"não é zip":          []byte("lixo"),
+	}
+	for name, archive := range cases {
+		root, exe := installation(t)
+		if err := applyUpdate(root, exe, archive); err == nil {
+			t.Errorf("%s: pacote aceito", name)
+		}
+		if read(t, filepath.Join(root, "app/server.mjs")) != "velho" || read(t, exe) != "exe antigo" || read(t, filepath.Join(root, "saves/game.db")) != "SAVES" {
+			t.Errorf("%s: a instalação foi alterada", name)
+		}
+		if _, err := os.Stat(filepath.Join(filepath.Dir(root), "fora.txt")); err == nil {
+			t.Errorf("%s: escreveu fora da pasta", name)
+		}
+	}
+}
+
 func TestUpdateEndToEnd(t *testing.T) {
-	payload := []byte(strings.Repeat("x", 2<<20))
-	sum := sha256.Sum256(payload)
+	archive := makeZip(t, map[string][]byte{exeName: bigExe(), "app/server.mjs": []byte("novo"), "app/web/index.html": []byte("novo")})
+	sum := sha256.Sum256(archive)
+	tag := "v1.0.1"
 	mux := http.NewServeMux()
 	var base string
 	mux.HandleFunc("/repos/"+repository+"/releases", func(w http.ResponseWriter, r *http.Request) {
-		_ = json.NewEncoder(w).Encode([]ghRelease{{Tag: "v1.0.1", Assets: []ghAsset{
-			{Name: assetName, URL: base + "/exe"}, {Name: assetName + ".sha256", URL: base + "/sha"},
+		_ = json.NewEncoder(w).Encode([]ghRelease{{Tag: tag, Assets: []ghAsset{
+			{Name: updateAsset(tag), URL: base + "/zip"}, {Name: updateAsset(tag) + ".sha256", URL: base + "/sha"},
 		}}})
 	})
-	mux.HandleFunc("/exe", func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write(payload) })
+	mux.HandleFunc("/zip", func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write(archive) })
 	mux.HandleFunc("/sha", func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(hex.EncodeToString(sum[:]) + "  " + assetName))
+		_, _ = w.Write([]byte(hex.EncodeToString(sum[:]) + "  " + updateAsset(tag)))
 	})
 	api := httptest.NewServer(mux)
 	defer api.Close()
 	base = api.URL
 	t.Setenv("POKESIM_UPDATE_API", api.URL)
 
-	exe := filepath.Join(t.TempDir(), "jogo.exe")
-	_ = os.WriteFile(exe, []byte("antigo"), 0o755)
-	u := &updater{installed: mustSemver(t, "1.0.0"), exe: exe, log: t.Logf}
+	root, exe := installation(t)
+	stopped := false
+	u := &updater{installed: mustSemver(t, "1.0.0"), root: root, exe: exe, log: t.Logf, beforeApply: func() { stopped = true }}
 	latest, installed, err := u.check(context.Background(), true)
 	if err != nil || !installed || latest != "1.0.1" {
 		t.Fatalf("check = %q %v %v", latest, installed, err)
 	}
-	if data, _ := os.ReadFile(exe); len(data) != len(payload) {
-		t.Errorf("exe não foi trocado (%d bytes)", len(data))
+	if !stopped {
+		t.Error("o jogo deveria ser parado antes de trocar os arquivos")
+	}
+	if read(t, filepath.Join(root, "app/server.mjs")) != "novo" || len(read(t, exe)) != 2<<20 || read(t, filepath.Join(root, "saves/game.db")) != "SAVES" {
+		t.Error("atualização não aplicada como esperado")
 	}
 	u.installed = mustSemver(t, "1.0.1")
 	if _, installed, _ := u.check(context.Background(), true); installed {
@@ -137,113 +260,111 @@ func TestUpdateEndToEnd(t *testing.T) {
 	}
 }
 
-func newTestServer(t *testing.T) (*httptest.Server, string) {
+func TestUpdateRejectsTamperedDownload(t *testing.T) {
+	archive := makeZip(t, map[string][]byte{exeName: bigExe(), "app/server.mjs": []byte("novo"), "app/web/index.html": []byte("novo")})
+	tag := "v1.0.1"
+	mux := http.NewServeMux()
+	var base string
+	mux.HandleFunc("/repos/"+repository+"/releases", func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode([]ghRelease{{Tag: tag, Assets: []ghAsset{
+			{Name: updateAsset(tag), URL: base + "/zip"}, {Name: updateAsset(tag) + ".sha256", URL: base + "/sha"},
+		}}})
+	})
+	mux.HandleFunc("/zip", func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write(archive) })
+	mux.HandleFunc("/sha", func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte(strings.Repeat("a", 64))) })
+	api := httptest.NewServer(mux)
+	defer api.Close()
+	base = api.URL
+	t.Setenv("POKESIM_UPDATE_API", api.URL)
+
+	root, exe := installation(t)
+	u := &updater{installed: mustSemver(t, "1.0.0"), root: root, exe: exe, log: t.Logf, beforeApply: func() { t.Error("não devia parar o jogo") }}
+	if _, installed, err := u.check(context.Background(), true); err == nil || installed {
+		t.Fatalf("download adulterado aceito: %v %v", installed, err)
+	}
+	if read(t, filepath.Join(root, "app/server.mjs")) != "velho" {
+		t.Error("instalação alterada")
+	}
+}
+
+// ---- servidor do jogo (Node) ----
+
+// fakeNode imita o servidor: imprime a linha de "pronto" e só encerra ao receber "stop".
+func fakeNode(t *testing.T, body string) string {
 	t.Helper()
-	recursos := t.TempDir()
-	for path, size := range map[string]int{
-		"Pokemons/001.png": 10, "Treinadores/Ash.png": 10, "Treinadores/leia.txt": 5,
-		"Sons/Musicas/01 - Pallet Town.mp3": 200_000, "Sons/Musicas/02 - Vinheta.mp3": 5_000, "Itens/segredo.txt": 5,
-	} {
-		full := filepath.Join(recursos, filepath.FromSlash(path))
-		_ = os.MkdirAll(filepath.Dir(full), 0o755)
-		_ = os.WriteFile(full, make([]byte, size), 0o644)
+	if runtime.GOOS == "windows" {
+		t.Skip("script de shell")
 	}
-	_ = os.WriteFile(filepath.Join(filepath.Dir(recursos), "fora.png"), []byte("x"), 0o644)
-	srv, err := newServer(recursos, nil)
+	path := filepath.Join(t.TempDir(), "node")
+	if err := os.WriteFile(path, []byte("#!/bin/sh\n"+body), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+func gameRoot(t *testing.T) string {
+	root := t.TempDir()
+	_ = os.MkdirAll(filepath.Join(root, "app"), 0o755)
+	_ = os.WriteFile(filepath.Join(root, "app", "server.mjs"), []byte("//"), 0o644)
+	return root
+}
+
+func TestStartAndStopServer(t *testing.T) {
+	t.Setenv("POKESIM_NODE", fakeNode(t, `echo "linha de aviso"; echo "Jogo pronto: http://127.0.0.1:34611/"; echo "home=$POKESIM_HOME gui=$POKESIM_GUI" >&2; read linha; [ "$linha" = "stop" ] && exit 0; exit 3`))
+	root := gameRoot(t)
+	game, err := startServer(serverConfig{root: root, log: t.Logf})
 	if err != nil {
 		t.Fatal(err)
 	}
-	srv.port = preferredPort
-	return httptest.NewServer(srv), recursos
-}
-
-func status(t *testing.T, url string, headers map[string]string) (int, string) {
-	t.Helper()
-	req, _ := http.NewRequest(http.MethodGet, url, nil)
-	for k, v := range headers {
-		req.Header.Set(k, v)
+	if game.port != 34611 {
+		t.Errorf("porta = %d", game.port)
 	}
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		t.Fatal(err)
+	game.stop()
+	select {
+	case <-game.exited():
+	default:
+		t.Error("o servidor deveria ter encerrado")
 	}
-	defer res.Body.Close()
-	buf := make([]byte, 4096)
-	n, _ := res.Body.Read(buf)
-	return res.StatusCode, string(buf[:n])
-}
-
-func TestServer(t *testing.T) {
-	ts, _ := newTestServer(t)
-	defer ts.Close()
-
-	if code, body := status(t, ts.URL+"/", nil); code != 200 || !strings.Contains(body, "<html") {
-		t.Errorf("interface: %d %.40q", code, body)
-	}
-	if code, _ := status(t, ts.URL+"/rota-qualquer", nil); code != 200 {
-		t.Errorf("rota sem arquivo deveria cair na interface: %d", code)
-	}
-	if code, _ := status(t, ts.URL+"/assets/nao-existe.js", nil); code != 404 {
-		t.Errorf("asset inexistente: %d", code)
-	}
-	if code, _ := status(t, ts.URL+"/recursos/Pokemons/001.png", nil); code != 200 {
-		t.Errorf("sprite: %d", code)
-	}
-	for _, bad := range []string{"/recursos/Itens/segredo.txt", "/recursos/Treinadores/leia.txt", "/recursos/../fora.png", "/recursos/Pokemons/../../fora.png", "/recursos/Pokemons/%2e%2e/%2e%2e/fora.png", "/recursos/Desconhecida/a.png"} {
-		if code, _ := status(t, ts.URL+bad, nil); code == 200 {
-			t.Errorf("%s não devia ser servido", bad)
-		}
-	}
-	code, body := status(t, ts.URL+"/recursos/Sons/Musicas/lista.json", nil)
-	var tracks []track
-	_ = json.Unmarshal([]byte(body), &tracks)
-	if code != 200 || len(tracks) != 1 || tracks[0].Title != "Pallet Town" {
-		t.Errorf("lista de músicas: %d %s", code, body)
-	}
-	if _, body := status(t, ts.URL+"/recursos/Treinadores/lista.json", nil); strings.TrimSpace(body) != `["Ash.png"]` {
-		t.Errorf("lista de treinadores: %s", body)
-	}
-	if code, _ := status(t, ts.URL+"/recursos/Sons/Musicas/01%20-%20Pallet%20Town.mp3", map[string]string{"Range": "bytes=0-99"}); code != http.StatusPartialContent {
-		t.Errorf("Range: %d", code)
-	}
-	if code, body := status(t, ts.URL+"/_/versao", nil); code != 200 || !strings.Contains(body, appID) {
-		t.Errorf("versão: %d %s", code, body)
+	if !game.wasStopped() {
+		t.Error("parada pedida pelo launcher não registrada")
 	}
 }
 
-func TestServerRejectsForeignHostAndStop(t *testing.T) {
-	ts, _ := newTestServer(t)
-	defer ts.Close()
-	req, _ := http.NewRequest(http.MethodGet, ts.URL+"/", nil)
-	req.Host = "evil.example.com"
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		t.Fatal(err)
+func TestStartServerFailure(t *testing.T) {
+	t.Setenv("POKESIM_NODE", fakeNode(t, `echo "porta ocupada" >&2; exit 1`))
+	_, err := startServer(serverConfig{root: gameRoot(t), log: t.Logf})
+	if err == nil || !strings.Contains(err.Error(), "porta ocupada") {
+		t.Fatalf("erro = %v", err)
 	}
-	res.Body.Close()
-	if res.StatusCode == 200 {
-		t.Error("host externo aceito")
-	}
-	post, _ := http.NewRequest(http.MethodPost, ts.URL+"/_/sair", nil)
-	res, _ = http.DefaultClient.Do(post)
-	res.Body.Close()
-	if res.StatusCode != http.StatusForbidden {
-		t.Errorf("sair sem cabeçalho: %d", res.StatusCode)
+	if _, err := startServer(serverConfig{root: t.TempDir(), log: t.Logf}); err == nil {
+		t.Error("sem app/server.mjs deveria falhar")
 	}
 }
 
-func TestListenFallback(t *testing.T) {
-	first, port, err := listen(34700)
+func TestServerDiesOnItsOwn(t *testing.T) {
+	t.Setenv("POKESIM_NODE", fakeNode(t, `echo "Jogo pronto: http://127.0.0.1:34612/"; sleep 0.2; exit 2`))
+	game, err := startServer(serverConfig{root: gameRoot(t), log: t.Logf})
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer first.Close()
-	second, port2, err := listen(port)
+	select {
+	case <-game.exited():
+	case <-time.After(5 * time.Second):
+		t.Fatal("não percebeu que o servidor caiu")
+	}
+	if game.wasStopped() {
+		t.Error("queda inesperada marcada como parada pedida")
+	}
+}
+
+func TestServerExitsCleanly(t *testing.T) {
+	t.Setenv("POKESIM_NODE", fakeNode(t, `echo "Jogo pronto: http://127.0.0.1:34613/"; sleep 0.2; exit 0`))
+	game, err := startServer(serverConfig{root: gameRoot(t), log: t.Logf})
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer second.Close()
-	if port2 != port+1 {
-		t.Errorf("esperava %d, veio %d", port+1, port2)
+	<-game.exited()
+	if !game.wasStopped() {
+		t.Error("saída normal (--stop) não deve ser tratada como queda")
 	}
 }

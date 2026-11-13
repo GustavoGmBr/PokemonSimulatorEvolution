@@ -3,8 +3,9 @@ name: Release
 # Publica uma versão. Dois jeitos:
 #   1) aumentar "version" no package.json e enviar para a main: se a release vX.Y.Z ainda não existe, ela é criada (com a tag);
 #   2) criar a tag manualmente: git tag -a v1.0.0 -m "Pokémon Simulator Evolution v1.0.0" && git push origin v1.0.0
-# O executável é compilado aqui (Go, sem dependências externas) e anexado à release junto com o .sha256 —
-# é dali que o launcher instalado baixa e confere as atualizações.
+# Os pacotes são montados aqui por scripts/build-release.mjs (launcher em Go + Node.js embutido + servidor SQLite + interface):
+#   *-full-win-x64.zip    pasta do jogo completa (o que o jogador baixa)
+#   *-update-win-x64.zip  .exe e app/ (o que o launcher instalado baixa e confere pelo .sha256)
 on:
   push:
     branches: [main]
@@ -15,7 +16,7 @@ permissions:
   contents: write
 
 jobs:
-  windows-exe:
+  pacotes-windows:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -52,9 +53,6 @@ jobs:
         if: steps.existing.outputs.skip != 'true'
       - run: npm test
         if: steps.existing.outputs.skip != 'true'
-      - name: Compilar a interface e o executável
-        if: steps.existing.outputs.skip != 'true'
-        run: npm run build:exe -- --out=dist/release/PokemonSimulatorEvolution.exe
       - name: Testes do launcher
         if: steps.existing.outputs.skip != 'true'
         run: go test ./...
@@ -67,24 +65,21 @@ jobs:
         with:
           ref: recursos
           path: recursos-branch
-      - name: Montar o pacote completo (pasta do jogo com o .exe)
+      - name: Montar os pacotes (completo e de atualização)
         if: steps.existing.outputs.skip != 'true'
         run: |
-          version=$(node -p "require('./package.json').version")
-          name="PokemonSimulatorEvolution-v$version-full-win-x64"
-          dir="pacote/PokemonSimulatorEvolution"
-          mkdir -p "$dir"
-          cp dist/release/PokemonSimulatorEvolution.exe "$dir/"
-          cp RELEASE_NOTES.md "$dir/LEIAME.md"
+          args=(--out=dist/release)
           if ls recursos-branch/*.zip >/dev/null 2>&1; then
-            for z in recursos-branch/*.zip; do unzip -q -o "$z" -d "$dir"; done
-            test -d "$dir/recursos" || { echo "::error::os .zip da branch recursos precisam conter a pasta recursos/"; exit 1; }
-            echo "Recursos: $(find "$dir/recursos" -type f | wc -l) arquivos"
-            (cd pacote && zip -q -r -9 "../dist/release/$name.zip" PokemonSimulatorEvolution)
-            (cd dist/release && sha256sum "$name.zip" > "$name.zip.sha256")
+            mkdir recursos-pack
+            for z in recursos-branch/*.zip; do unzip -q -o "$z" -d recursos-pack; done
+            test -d recursos-pack/recursos || { echo "::error::os .zip da branch recursos precisam conter a pasta recursos/"; exit 1; }
+            echo "Recursos: $(find recursos-pack/recursos -type f | wc -l) arquivos"
+            args+=(--recursos=recursos-pack/recursos)
           else
-            echo "::warning::branch recursos ausente: a release sai só com o .exe (sem o pacote completo)."
+            echo "::warning::branch recursos ausente: o pacote completo sai sem imagens e músicas."
           fi
+          node scripts/build-release.mjs "${args[@]}"
+          ls -la dist/release
       - name: Publicar a release
         if: steps.existing.outputs.skip != 'true'
         env:
@@ -102,7 +97,7 @@ jobs:
               exit 0
             fi
           fi
-          args=(release create "$tag" dist/release/PokemonSimulatorEvolution.exe dist/release/PokemonSimulatorEvolution.exe.sha256 dist/release/*-full-win-x64.zip*
+          args=(release create "$tag" dist/release/*-full-win-x64.zip* dist/release/*-update-win-x64.zip*
             --target "$GITHUB_SHA" --title "Pokémon Simulator Evolution $tag" --notes-file RELEASE_NOTES.md)
           case "$version" in *-*) args+=(--prerelease) ;; esac
           gh "${args[@]}"

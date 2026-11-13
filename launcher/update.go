@@ -1,6 +1,8 @@
 package main
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -11,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -20,8 +23,14 @@ import (
 
 const (
 	repository = "GustavoGmBr/PokemonSimulatorEvolution"
-	assetName  = "PokemonSimulatorEvolution.exe"
+	// Nome do executável dentro do pacote; a atualização (assetPrefix-vX.Y.Z-update-win-x64.zip) traz o executável
+	// novo e a pasta app/ (servidor + interface). Saves, recursos/ e runtime/ não são tocados.
+	exeName     = "PokemonSimulatorEvolution.exe"
+	assetPrefix = "PokemonSimulatorEvolution"
 )
+
+// updateAsset é o nome do pacote de atualização de uma release (ex.: PokemonSimulatorEvolution-v1.1.0-update-win-x64.zip).
+func updateAsset(tag string) string { return assetPrefix + "-" + tag + "-update-win-x64.zip" }
 
 // Endereço da API do GitHub (pode ser trocado em testes por POKESIM_UPDATE_API).
 func updateAPI() string {
@@ -123,7 +132,7 @@ type ghRelease struct {
 	Assets     []ghAsset `json:"assets"`
 }
 
-// pickRelease escolhe a release mais nova que a instalada e que já tem o executável e o checksum.
+// pickRelease escolhe a release mais nova que a instalada e que já tem o pacote de atualização e o checksum.
 // Quem usa uma versão estável só recebe estáveis; quem usa um pré-lançamento recebe também os pré-lançamentos.
 func pickRelease(releases []ghRelease, installed semver) (ghRelease, semver, bool) {
 	best := installed
@@ -137,7 +146,7 @@ func pickRelease(releases []ghRelease, installed semver) (ghRelease, semver, boo
 		if !ok || (len(candidate.pre) > 0 && len(installed.pre) == 0) || candidate.compare(best) <= 0 {
 			continue
 		}
-		if release.asset(assetName) == "" || release.asset(assetName+".sha256") == "" {
+		if release.asset(updateAsset(release.Tag)) == "" || release.asset(updateAsset(release.Tag)+".sha256") == "" {
 			continue
 		}
 		best, chosen, found = candidate, release, true
@@ -219,8 +228,11 @@ func replaceExecutable(exe string, data []byte) error {
 
 type updater struct {
 	installed semver
+	root      string // pasta do jogo
 	exe       string
 	log       func(string, ...any)
+	// beforeApply é chamado com o pacote já baixado e conferido, antes de trocar arquivos (aqui o servidor do jogo é parado).
+	beforeApply func()
 }
 
 // available procura uma versão mais nova nas releases do repositório.
@@ -237,31 +249,136 @@ func (u *updater) available(ctx context.Context) (ghRelease, semver, bool, error
 	return release, latest, ok, nil
 }
 
-// install baixa, confere e instala a release; devolve a nova versão.
+// Pastas e arquivos que a atualização pode trazer; qualquer outro caminho no pacote é recusado.
+var updatableFiles = map[string]bool{"LEIAME.md": true, "RELEASE_NOTES.md": true, "THIRD_PARTY_NOTICES.txt": true, "distribution.json": true}
+
+const maxUpdateSize = 400 << 20
+
+// applyUpdate instala o pacote de atualização (zip) em root: confere tudo numa pasta temporária, troca app/ de uma vez
+// e por último o executável (o antigo vira .old). O servidor do jogo precisa estar parado.
+func applyUpdate(root, exe string, archive []byte) error {
+	reader, err := zip.NewReader(bytes.NewReader(archive), int64(len(archive)))
+	if err != nil {
+		return fmt.Errorf("pacote de atualização inválido: %w", err)
+	}
+	staging := filepath.Join(root, "update.tmp")
+	_ = os.RemoveAll(staging)
+	if err := os.MkdirAll(staging, 0o755); err != nil {
+		return err
+	}
+	defer os.RemoveAll(staging)
+
+	var total int64
+	var newExe []byte
+	for _, entry := range reader.File {
+		name := path.Clean(strings.ReplaceAll(entry.Name, "\\", "/"))
+		if entry.FileInfo().IsDir() {
+			continue
+		}
+		if name == "." || strings.HasPrefix(name, "../") || strings.HasPrefix(name, "/") || strings.Contains(name, ":") {
+			return fmt.Errorf("caminho inválido no pacote: %q", entry.Name)
+		}
+		top, _, nested := strings.Cut(name, "/")
+		switch {
+		case name == exeName, updatableFiles[name], nested && top == "app":
+		default:
+			return fmt.Errorf("arquivo inesperado no pacote: %q", entry.Name)
+		}
+		total += int64(entry.UncompressedSize64)
+		if total > maxUpdateSize {
+			return errors.New("o pacote de atualização é grande demais")
+		}
+		file, err := entry.Open()
+		if err != nil {
+			return err
+		}
+		data, err := io.ReadAll(io.LimitReader(file, maxUpdateSize))
+		file.Close()
+		if err != nil {
+			return err
+		}
+		if name == exeName {
+			newExe = data
+			continue
+		}
+		target := filepath.Join(staging, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+			return err
+		}
+		if err := os.WriteFile(target, data, 0o644); err != nil {
+			return err
+		}
+	}
+	for _, required := range []string{"app/server.mjs", "app/web/index.html"} {
+		if _, err := os.Stat(filepath.Join(staging, filepath.FromSlash(required))); err != nil {
+			return fmt.Errorf("o pacote não contém %s", required)
+		}
+	}
+	if newExe != nil && len(newExe) < 1<<20 {
+		return errors.New("o executável do pacote é pequeno demais")
+	}
+
+	// app/: troca inteira (o antigo fica em app.old até a troca dar certo).
+	live, old := filepath.Join(root, "app"), filepath.Join(root, "app.old")
+	_ = os.RemoveAll(old)
+	hadApp := false
+	if _, err := os.Stat(live); err == nil {
+		hadApp = true
+		if err := os.Rename(live, old); err != nil {
+			return fmt.Errorf("não foi possível substituir a pasta app: %w", err)
+		}
+	}
+	if err := os.Rename(filepath.Join(staging, "app"), live); err != nil {
+		if hadApp {
+			_ = os.Rename(old, live)
+		}
+		return err
+	}
+	_ = os.RemoveAll(old)
+
+	for name := range updatableFiles {
+		source := filepath.Join(staging, name)
+		if _, err := os.Stat(source); err != nil {
+			continue
+		}
+		target := filepath.Join(root, name)
+		_ = os.Remove(target)
+		if err := os.Rename(source, target); err != nil {
+			return err
+		}
+	}
+	if newExe != nil {
+		return replaceExecutable(exe, newExe)
+	}
+	return nil
+}
+
+// install baixa, confere e instala a release.
 func (u *updater) install(ctx context.Context, release ghRelease) error {
-	exeURL, sumURL := release.asset(assetName), release.asset(assetName+".sha256")
+	name := updateAsset(release.Tag)
+	archiveURL, sumURL := release.asset(name), release.asset(name+".sha256")
 	prefix := "https://github.com/" + repository + "/releases/download/" + release.Tag + "/"
-	if os.Getenv("POKESIM_UPDATE_API") == "" && (!strings.HasPrefix(exeURL, prefix) || !strings.HasPrefix(sumURL, prefix)) {
+	if os.Getenv("POKESIM_UPDATE_API") == "" && (!strings.HasPrefix(archiveURL, prefix) || !strings.HasPrefix(sumURL, prefix)) {
 		return errors.New("endereço de atualização inválido")
 	}
 	sum, err := get(ctx, sumURL, 4096)
 	if err != nil {
 		return err
 	}
-	data, err := get(ctx, exeURL, 200<<20)
+	data, err := get(ctx, archiveURL, maxUpdateSize)
 	if err != nil {
 		return err
-	}
-	if len(data) < 1<<20 {
-		return errors.New("o executável baixado é pequeno demais")
 	}
 	if err := verifyChecksum(data, string(sum)); err != nil {
 		return err
 	}
-	return replaceExecutable(u.exe, data)
+	if u.beforeApply != nil {
+		u.beforeApply()
+	}
+	return applyUpdate(u.root, u.exe, data)
 }
 
-// check procura e, se houver, instala. Devolve a versão instalada ("" se já estava atualizado).
+// check procura e, se houver (e apply), instala. Devolve a versão instalada ("" se já estava atualizado).
 func (u *updater) check(ctx context.Context, apply bool) (latest string, installed bool, err error) {
 	release, version, ok, err := u.available(ctx)
 	if err != nil || !ok {

@@ -1,6 +1,7 @@
 // Atalhos de teclado da batalha: um por golpe (posição 1 a 4) e um por menu. O jogador pode trocar cada tecla;
 // a escolha fica neste navegador (vale para todos os saves).
 import { useSyncExternalStore } from 'react';
+import { gameStorage } from './game-storage.ts';
 
 export const battleKeyActions = [
   { id: 'move1', label: 'Golpe 1', fallback: '1' },
@@ -50,7 +51,7 @@ let snapshot: BattleKeys | null = null;
 let snapshotRaw: string | null = null;
 
 function currentKeys(): BattleKeys {
-  const raw = typeof localStorage === 'undefined' ? null : localStorage.getItem(storageKey);
+  const raw = gameStorage.getItem(storageKey);
   if (snapshot === null || raw !== snapshotRaw) { snapshot = readKeys(raw); snapshotRaw = raw; }
   return snapshot;
 }
@@ -70,9 +71,9 @@ export function useBattleKeys(): BattleKeys {
 }
 
 function store(keys: BattleKeys) {
-  try { localStorage.setItem(storageKey, JSON.stringify(keys)); } catch { /* sem armazenamento: vale só nesta sessão */ }
+  try { gameStorage.setItem(storageKey, JSON.stringify(keys)); } catch { /* sem armazenamento: vale só nesta sessão */ }
   snapshot = keys;
-  snapshotRaw = typeof localStorage === 'undefined' ? null : localStorage.getItem(storageKey);
+  snapshotRaw = gameStorage.getItem(storageKey);
   window.dispatchEvent(new Event(changeEvent));
 }
 
