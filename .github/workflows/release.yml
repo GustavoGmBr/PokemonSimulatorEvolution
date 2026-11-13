@@ -1,11 +1,13 @@
 name: Release
 
-# Publica uma versão: crie a tag vX.Y.Z (igual à versão do package.json) e envie para o GitHub.
-#   git tag -a v1.0.0 -m "Pokémon Simulator Evolution v1.0.0" && git push origin v1.0.0
+# Publica uma versão. Dois jeitos:
+#   1) aumentar "version" no package.json e enviar para a main: se a release vX.Y.Z ainda não existe, ela é criada (com a tag);
+#   2) criar a tag manualmente: git tag -a v1.0.0 -m "Pokémon Simulator Evolution v1.0.0" && git push origin v1.0.0
 # O executável é compilado aqui (Go, sem dependências externas) e anexado à release junto com o .sha256 —
 # é dali que o launcher instalado baixa e confere as atualizações.
 on:
   push:
+    branches: [main]
     tags: ['v*']
   workflow_dispatch:
 
@@ -18,13 +20,26 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      - name: Esta versão já tem release?
+        id: existing
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if gh release view "v$version" >/dev/null 2>&1; then
+            echo "A release v$version já existe; nada a publicar."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/setup-node@v4
+        if: steps.existing.outputs.skip != 'true'
         with:
           node-version: 22
       - uses: actions/setup-go@v5
+        if: steps.existing.outputs.skip != 'true'
         with:
           go-version: '1.24'
       - name: A tag precisa ser igual à versão do package.json
+        if: steps.existing.outputs.skip != 'true'
         run: |
           version=$(node -p "require('./package.json').version")
           if [ "$GITHUB_REF_TYPE" = "tag" ] && [ "v$version" != "$GITHUB_REF_NAME" ]; then
@@ -32,14 +47,20 @@ jobs:
             exit 1
           fi
       - run: npm ci --no-audit --no-fund
+        if: steps.existing.outputs.skip != 'true'
       - run: npm run typecheck
+        if: steps.existing.outputs.skip != 'true'
       - run: npm test
+        if: steps.existing.outputs.skip != 'true'
       - name: Compilar a interface e o executável
+        if: steps.existing.outputs.skip != 'true'
         run: npm run build:exe -- --out=dist/release/PokemonSimulatorEvolution.exe
       - name: Testes do launcher
+        if: steps.existing.outputs.skip != 'true'
         run: go test ./...
         working-directory: launcher
       - name: Publicar a release
+        if: steps.existing.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

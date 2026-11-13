@@ -49,7 +49,7 @@ Abra o endereço indicado pelo Vite. Use `npm run typecheck` para checar os tipo
 - **Opções de linha de comando:** `--background` (não abre o navegador), `--no-update`, `--stop` (encerra o jogo aberto), `--recursos=`.
 - **Saves:** ficam no `localStorage` do navegador, por endereço. Por isso a porta fixa importa: sempre `127.0.0.1:34600`. Saves feitos em `localhost:5173` (`npm run dev`) precisam ser exportados e importados.
 - **Compilar:** com Go 1.24+ e Node 22, `npm run build:exe` gera o `.exe` na raiz; `npm run test:launcher` roda os testes do launcher (`go test`). O ícone e o manifesto do `.exe` vêm de `launcher/rsrc_windows_amd64.syso` (gerado por `go run ./tools/winres` dentro de `launcher/`).
-- **Publicar uma versão:** aumente `version` em `package.json` (e `apps/web/package.json`), escreva `RELEASE_NOTES.md`, faça o commit e crie a tag `vX.Y.Z`. O GitHub Actions (`.github/workflows/release.yml`) compila, testa e cria a release com o `.exe` e o `.sha256`.
+- **Publicar uma versão:** aumente `version` em `package.json` (e `apps/web/package.json`), escreva `RELEASE_NOTES.md`, faça o commit e envie para a `main` (ou crie a tag `vX.Y.Z` à mão). Se a release dessa versão ainda não existe, o GitHub Actions (`.github/workflows/release.yml`) compila, testa e cria a release com o `.exe` e o `.sha256`.
 
 ## Batalhas
 
