@@ -20,14 +20,14 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - name: Esta versão já tem release?
+      - name: Esta versão já tem release com o pacote completo?
         id: existing
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           version=$(node -p "require('./package.json').version")
-          if gh release view "v$version" >/dev/null 2>&1; then
-            echo "A release v$version já existe; nada a publicar."
+          if gh release view "v$version" --json assets -q '.assets[].name' 2>/dev/null | grep -q 'full-win-x64\.zip$'; then
+            echo "A release v$version já tem o pacote completo; nada a publicar."
             echo "skip=true" >> "$GITHUB_OUTPUT"
           fi
       - uses: actions/setup-node@v4
@@ -93,6 +93,15 @@ jobs:
           version=$(node -p "require('./package.json').version")
           tag="v$version"
           shopt -s nullglob
+          # Release já existente sem o pacote completo (ex.: a primeira, só com o .exe): é apagada e recriada com tudo.
+          if gh release view "$tag" >/dev/null 2>&1; then
+            if ls dist/release/*-full-win-x64.zip >/dev/null 2>&1; then
+              gh release delete "$tag" --cleanup-tag --yes
+            else
+              echo "::warning::a release $tag já existe e não há pacote completo para substituí-la."
+              exit 0
+            fi
+          fi
           args=(release create "$tag" dist/release/PokemonSimulatorEvolution.exe dist/release/PokemonSimulatorEvolution.exe.sha256 dist/release/*-full-win-x64.zip*
             --target "$GITHUB_SHA" --title "Pokémon Simulator Evolution $tag" --notes-file RELEASE_NOTES.md)
           case "$version" in *-*) args+=(--prerelease) ;; esac

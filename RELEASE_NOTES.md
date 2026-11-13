@@ -1,8 +1,8 @@
-## Pokémon Simulator Evolution 1.0.1
+## Pokémon Simulator Evolution 1.0.0
 
 ### Como instalar
 
-Baixe **`PokemonSimulatorEvolution-v1.0.1-full-win-x64.zip`**, extraia onde quiser e abra `PokemonSimulatorEvolution.exe`. A pasta já vem completa: o executável e a pasta `recursos/` (sprites, mapas, itens e músicas) lado a lado.
+Baixe **`PokemonSimulatorEvolution-v1.0.0-full-win-x64.zip`**, extraia onde quiser e abra `PokemonSimulatorEvolution.exe`. A pasta já vem completa: o executável e a pasta `recursos/` (sprites, mapas, itens e músicas) lado a lado.
 
 (`PokemonSimulatorEvolution.exe` solto é só o executável: é o que a atualização automática baixa. Use-o apenas se você já tem a pasta `recursos/`.)
 
@@ -18,7 +18,7 @@ Baixe **`PokemonSimulatorEvolution-v1.0.1-full-win-x64.zip`**, extraia onde quis
 ### Novidades
 
 - **Pokémon inicial:** numa jornada nova só dá para escolher entre os iniciais de Kanto. Os iniciais de todas as gerações são liberados no **Novo Jogo+**, depois de zerar o jogo.
-- Pacote completo da release (pasta do jogo com o `.exe` e os recursos).
+- A release traz o pacote completo (pasta do jogo com o `.exe` e os recursos).
 
 ### Segurança da atualização
 
