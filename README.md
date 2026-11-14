@@ -79,6 +79,10 @@ Ginásios usam os times do catálogo do Remake, com circuitos liberados após ve
 - **Escala pela média da equipe:** no Novo Jogo+ treinadores, ginásios (líder, Elite e campeão), chefes e a nova **Copa Evolution** (acima da Copa Prime) usam a média de nível da equipe somada a um ajuste (`scaleOffsets` em `lib/battle/challenges.ts`): treinadores por dificuldade (−10 a +5), líderes +0, Elite +3, campeão +6, chefes −10 a +15 conforme as estrelas, Copa Evolution +5.
 - **Morte permanente:** modo escolhido ao criar a jornada (`progress.mode`). No fim da batalha, todo Pokémon derrotado é apagado; se a equipe ficar vazia, entra o de maior nível do PC. Sem nenhum Pokémon (equipe + PC) o save é excluído e aparece a tela de fim de jogo. O Pokémon apostado no cassino não é apagado pela batalha.
 
+## Cassino
+
+O cassino é um salão "Game Corner" com nove jogos (caça-níqueis, roleta, Voltorb Flip, Pokejack, Pokémon Race, Wheel of Fortune, Pula Piplup, Portas do Eevee e Duelo de Tipos). As regras ficam em `apps/web/src/lib/battle/casino-rules.ts`; `lib/casino.ts` sorteia o resultado de uma vez e devolve um `outcome` detalhado, que as telas em `screens/game/casino/` animam (estilos em `styles/casino.css`, fixos em todos os temas). Com "reduzir movimento" ativo as animações são puladas.
+
 ## Opções
 
 A área **Opções** reúne as preferências, guardadas neste navegador e valendo para todos os saves:

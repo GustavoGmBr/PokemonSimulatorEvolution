@@ -10,7 +10,19 @@ export type CasinoRound = { stake: Stake } & (
   | { game: 'jack'; state: rules.JackState }
   | { game: 'piplup'; state: rules.PiplupState }
 );
-type Result = { state: GameState; message: string; grid?: rules.SlotCell[] };
+/** O que aconteceu na rodada, em detalhe, para a tela animar (o sorteio já foi feito; a tela só mostra). */
+export type CasinoOutcome =
+  | { game: 'slots'; grid: rules.SlotCell[]; lines: rules.SlotLine[] }
+  | { game: 'roulette'; number: number; bet: rules.RouletteBet }
+  | { game: 'race'; frames: number[][]; winner: number; pick: number }
+  | { game: 'wheel'; index: number }
+  | { game: 'doors'; winner: number; pick: number }
+  | { game: 'duel'; opponent: number; pick: number; result: 'win' | 'draw' | 'lose' }
+  | { game: 'jack'; player: rules.Card[]; dealer: rules.Card[] }
+  | { game: 'voltorb'; board: number[]; revealed: number[] }
+  | { game: 'piplup'; jumps: number; fell: boolean };
+/** `outcome` e `multiplier` só existem quando a rodada terminou (e foi paga). */
+export type Result = { state: GameState; message: string; outcome?: CasinoOutcome; multiplier?: number };
 const rng = rngFrom((max) => Math.floor(Math.random() * max));
 
 export const casinoPrizes = [
@@ -42,7 +54,7 @@ export function stakeCandidates(game: GameState) {
     .filter((pokemon) => !pokemon.favorite);
 }
 
-function settle(game: GameState, stake: Stake, multiplier: number, detail: string): Result | string {
+function settle(game: GameState, stake: Stake, multiplier: number, detail: string, outcome?: CasinoOutcome): Result | string {
   let { collection, progress } = game;
   if (stake.uid) {
     if (multiplier < 1) {
@@ -61,7 +73,7 @@ function settle(game: GameState, stake: Stake, multiplier: number, detail: strin
     progress = { ...progress, casinoChips: progress.casinoChips + payout };
     detail += ` Retorno: ${payout} fichas.`;
   }
-  return { state: { ...game, collection, progress: { ...progress, casinoRound: undefined } }, message: detail };
+  return { state: { ...game, collection, progress: { ...progress, casinoRound: undefined } }, message: detail, multiplier, outcome };
 }
 
 export function startCasino(game: GameState, id: rules.CasinoGame, chips: number, uid: string, pick: number, roulette: rules.RouletteBet | null): Result | string {
@@ -80,39 +92,42 @@ export function startCasino(game: GameState, id: rules.CasinoGame, chips: number
   switch (id) {
     case 'slots': {
       const spin = rules.spinSlots(rng);
-      const result = settle(state, stake, spin.multiplier, `Caça-níqueis: ${spin.multiplier}×.`);
-      return typeof result === 'string' ? result : { ...result, grid: spin.grid };
+      return settle(state, stake, spin.multiplier, `Caça-níqueis: ${spin.multiplier}×.`, { game: 'slots', grid: spin.grid, lines: spin.lines });
     }
     case 'roulette': {
       if (!roulette) return 'Escolha uma aposta de roleta válida.';
       const number = rules.spinRoulette(rng);
-      return settle(state, stake, rules.roulettePayout(roulette, number), `Número sorteado: ${number}.`);
+      return settle(state, stake, rules.roulettePayout(roulette, number), `Número sorteado: ${number}.`, { game: 'roulette', number, bet: roulette });
     }
     case 'race': {
       const result = rules.runRace(rng);
-      return settle(state, stake, result.winner === pick ? rules.RACE_PAYOUT : 0, `Vencedor: corredor ${result.winner + 1}.`);
+      return settle(state, stake, result.winner === pick ? rules.RACE_PAYOUT : 0, `Vencedor: corredor ${result.winner + 1}.`, { game: 'race', frames: result.frames, winner: result.winner, pick });
     }
     case 'wheel': {
       const result = rules.spinWheel(rng);
-      return settle(state, stake, result.multiplier, `A roda parou em ${result.multiplier}×.`);
+      return settle(state, stake, result.multiplier, `A roda parou em ${result.multiplier}×.`, { game: 'wheel', index: result.index });
     }
     case 'doors': {
       const result = rules.openCasinoDoor(pick, rng);
-      return settle(state, stake, result.multiplier, `Porta premiada: ${result.winner + 1}.`);
+      return settle(state, stake, result.multiplier, `Porta premiada: ${result.winner + 1}.`, { game: 'doors', winner: result.winner, pick });
     }
     case 'duel': {
       const result = rules.playTypeDuel(pick, rng);
-      return settle(state, stake, result.multiplier, `Oponente: ${rules.DUEL_TYPES[result.opponent]!.name}. ${{ win: 'Vitória', draw: 'Empate', lose: 'Derrota' }[result.result]}.`);
+      return settle(state, stake, result.multiplier, `Oponente: ${rules.DUEL_TYPES[result.opponent]!.name}. ${{ win: 'Vitória', draw: 'Empate', lose: 'Derrota' }[result.result]}.`,
+        { game: 'duel', opponent: result.opponent, pick, result: result.result });
     }
     case 'voltorb': return started({ game: id, stake, state: { stake: stake.chips, board: rules.newVoltorb(rng), revealed: [] } });
     case 'piplup': return started({ game: id, stake, state: { stake: stake.chips, jumps: 0 } });
     case 'jack': {
       const dealt = rules.dealJack(stake.chips, rng);
-      return dealt.done ? settle(state, stake, rules.jackMultiplier(dealt), `Pokejack: ${rules.handValue(dealt.player).total} contra ${rules.handValue(dealt.dealer).total}.`)
+      return dealt.done ? settle(state, stake, rules.jackMultiplier(dealt), `Pokejack: ${rules.handValue(dealt.player).total} contra ${rules.handValue(dealt.dealer).total}.`,
+        { game: 'jack', player: dealt.player, dealer: dealt.dealer })
         : started({ game: id, stake, state: dealt });
     }
   }
 }
+
+const voltorbOutcome = (state: rules.VoltorbState): CasinoOutcome => ({ game: 'voltorb', board: [...state.board], revealed: [...state.revealed] });
 
 export function casinoAction(game: GameState, action: 'take' | 'play' | 'double' | 'abandon', index = 0): Result | string {
   const pending = game.progress.casinoRound;
@@ -124,15 +139,15 @@ export function casinoAction(game: GameState, action: 'take' | 'play' | 'double'
   }
   if (action === 'abandon') return settle(game, round.stake, 0, 'Rodada abandonada.');
   if (round.game === 'voltorb') {
-    if (action === 'take') return settle(game, round.stake, rules.voltorbMultiplier(round.state), 'Cartas resgatadas.');
+    if (action === 'take') return settle(game, round.stake, rules.voltorbMultiplier(round.state), 'Cartas resgatadas.', voltorbOutcome(round.state));
     if (!Number.isInteger(index) || index < 0 || index >= 36 || round.state.revealed.includes(index)) return 'Escolha uma carta fechada.';
     round.state.revealed.push(index);
-    if (round.state.board[index] === 0) return settle(game, round.stake, 0, 'Você encontrou um Voltorb.');
-    if (round.state.revealed.length === rules.VOLTORB_MAX_PICKS) return settle(game, round.stake, rules.voltorbMultiplier(round.state), 'Seis cartas abertas.');
+    if (round.state.board[index] === 0) return settle(game, round.stake, 0, 'Você encontrou um Voltorb.', voltorbOutcome(round.state));
+    if (round.state.revealed.length === rules.VOLTORB_MAX_PICKS) return settle(game, round.stake, rules.voltorbMultiplier(round.state), 'Seis cartas abertas.', voltorbOutcome(round.state));
   } else if (round.game === 'piplup') {
-    if (action === 'take') return settle(game, round.stake, rules.piplupMultiplier(round.state.jumps), 'Piplup voltou em segurança.');
-    if (rules.piplupJump(round.state, rng) === 'fall') return settle(game, round.stake, 0, 'Piplup caiu.');
-    if (round.state.jumps === rules.PIPLUP_PAYS.length) return settle(game, round.stake, rules.piplupMultiplier(round.state.jumps), 'Piplup completou todos os saltos.');
+    if (action === 'take') return settle(game, round.stake, rules.piplupMultiplier(round.state.jumps), 'Piplup voltou em segurança.', { game: 'piplup', jumps: round.state.jumps, fell: false });
+    if (rules.piplupJump(round.state, rng) === 'fall') return settle(game, round.stake, 0, 'Piplup caiu.', { game: 'piplup', jumps: round.state.jumps, fell: true });
+    if (round.state.jumps === rules.PIPLUP_PAYS.length) return settle(game, round.stake, rules.piplupMultiplier(round.state.jumps), 'Piplup completou todos os saltos.', { game: 'piplup', jumps: round.state.jumps, fell: false });
   } else {
     if (action === 'double') {
       if (round.stake.uid || round.state.player.length !== 2 || game.progress.casinoChips < round.stake.chips) return 'Não é possível dobrar.';
@@ -141,7 +156,17 @@ export function casinoAction(game: GameState, action: 'take' | 'play' | 'double'
     } else if (action === 'take') rules.finishJack(round.state);
     else rules.jackHit(round.state);
     if (round.state.done) return settle(game, round.stake, rules.jackMultiplier(round.state),
-      `Pokejack: ${rules.handValue(round.state.player).total} contra ${rules.handValue(round.state.dealer).total}.`);
+      `Pokejack: ${rules.handValue(round.state.player).total} contra ${rules.handValue(round.state.dealer).total}.`,
+      { game: 'jack', player: round.state.player, dealer: round.state.dealer });
   }
   return { state: { ...game, progress: { ...game.progress, casinoRound: round } }, message: 'Rodada em andamento.' };
+}
+
+/** Compra um prêmio na loja do cassino (uma unidade). */
+export function buyCasinoPrize(game: GameState, item: string): GameState | string {
+  const price = casinoPrizes.find(([name]) => name === item)?.[1];
+  if (price === undefined) return 'Prêmio indisponível.';
+  const owned = game.progress.bag[item] ?? 0;
+  if (game.progress.casinoChips < price || owned >= 99) return 'Saldo insuficiente ou mochila cheia.';
+  return { ...game, progress: { ...game.progress, casinoChips: game.progress.casinoChips - price, bag: { ...game.progress.bag, [item]: owned + 1 } } };
 }
