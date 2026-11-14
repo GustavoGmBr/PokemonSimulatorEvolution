@@ -60,6 +60,8 @@ export function pickAnimation(move: MoveRef): FxAnimation {
   const type: FxType = isFxType(move.type) ? move.type : 'normal';
   const pool = animationsOf(type);
   const slug = move.slug.toLowerCase();
+  const signature = pool.find((animation) => animation.id === `${type}-${slug}` && animation.kind === move.category);
+  if (signature) return signature;
   for (const [re, suffix] of keywords[type] ?? []) {
     if (!re.test(slug)) continue;
     const found = pool.find((a) => a.id === `${type}-${suffix}`);

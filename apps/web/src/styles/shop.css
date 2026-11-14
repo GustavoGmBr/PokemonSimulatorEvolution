@@ -90,16 +90,28 @@
 .market-sold { position: absolute; inset: 0; display: grid; place-items: center; background: rgb(255 255 255 / .6); font-weight: 900; letter-spacing: .08em; text-transform: uppercase; rotate: -8deg; }
 .market-body { display: grid; gap: .3rem; }
 .market-types { display: flex; flex-wrap: wrap; gap: .25rem; }
-.market-line { display: flex; align-items: center; justify-content: space-between; gap: .4rem; }
+.market-line { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .4rem; }
 .market-price { font-size: 1rem; font-weight: 800; color: var(--primary); }
 .market-actions { display: flex; gap: .35rem; }
 .market-actions > :first-child { flex: 1 1 auto; }
-.market-stars { display: inline-flex; letter-spacing: .02em; }
-.market-stars > span { color: #cfd2c0; }
-.market-stars > span[data-on="true"] { color: #8b8f7a; }
-.market-stars[data-stars="2"] > span[data-on="true"] { color: #4a8f3f; }
-.market-stars[data-stars="3"] > span[data-on="true"] { color: #1f6fd6; }
-.market-stars[data-stars="4"] > span[data-on="true"] { color: #c42a2a; }
+.market-stars {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: .35rem;
+  padding: .2rem .4rem;
+  border: 1px solid var(--border);
+  border-radius: .45rem;
+  background: var(--muted);
+  color: var(--foreground);
+  white-space: nowrap;
+}
+.market-stars > strong { font-size: .875rem; font-variant-numeric: tabular-nums; line-height: 1; }
+.market-star-icons { font-size: 1rem; letter-spacing: .04em; line-height: 1; }
+.market-star-icons > :last-child { color: var(--muted-foreground); }
+.market-stars[data-stars="2"] .market-star-icons > :first-child { color: #4a8f3f; }
+.market-stars[data-stars="3"] .market-star-icons > :first-child { color: #1f6fd6; }
+.market-stars[data-stars="4"] .market-star-icons > :first-child { color: #c42a2a; }
 
 .market-sell { position: relative; display: grid; justify-items: center; gap: .25rem; width: 100%; padding: .55rem; border: 2px solid var(--border); border-radius: .75rem; background: var(--background); text-align: center; cursor: pointer; }
 .market-sell[data-grade] { border-color: var(--grade); }

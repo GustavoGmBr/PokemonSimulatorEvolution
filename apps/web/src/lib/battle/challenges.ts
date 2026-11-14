@@ -25,10 +25,7 @@ export type Opponent = {
 // ---------- Novo Jogo+ ----------
 // Depois de derrotar todos os campeões o jogo reinicia a progressão e os adversários passam a acompanhar o nível da equipe.
 const MAX_LEVEL = 100;
-/** Média de nível da equipe (arredondada); é a base da escala dos adversários no Novo Jogo+. */
-export function averageLevel(team: readonly { level: number }[]) {
-  return team.length ? Math.round(team.reduce((sum, { level }) => sum + level, 0) / team.length) : 5;
-}
+export { averageLevel } from '../pokemon-collection';
 export const scaledLevel = (average: number, offset: number) => Math.max(1, Math.min(MAX_LEVEL, average + offset));
 /** Ajuste de nível por dificuldade (somado à média da equipe). */
 export const scaleOffsets = {

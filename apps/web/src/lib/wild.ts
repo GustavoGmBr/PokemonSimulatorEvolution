@@ -1,12 +1,25 @@
 // Selvagens: sorteio do mapa e dos Pokémon que aparecem nele. Tudo aqui é puro (o sorteio recebe a função aleatória).
 import { wildMaps, wildMapIds, type WildMapId } from '@pokesim-evolution/data/wild-maps';
 import { getWildSpecies, wildSpecies, type WildSpecies } from '@pokesim-evolution/data/wild-species';
+import challenges from '@pokesim-evolution/data/challenges';
 import { createUid } from './pokemon-collection';
 import { perfectChance, perfectIvs, readIvs, rollIvs, starThresholds, type Ivs } from './ivs';
 
 /** Quantos Pokémon aparecem ao todo em cada mapa, e quantos podem estar soltos ao mesmo tempo. */
-export const spawnsPerMap = 8;
-export const maxAlive = 4;
+const initialSpawns = 8;
+const initialCapacity = 4;
+const maximumCapacity = 15;
+const maximumSpawns = maximumCapacity * 2;
+
+export function wildPopulation(progress: { cycle: number; challenges: { defeated: readonly string[] } }) {
+  const continuous = progress.cycle > 0;
+  const completed = continuous ? challenges.regions.length : challenges.regions.filter(({ circuits }) =>
+    circuits.every(({ champion }) => progress.challenges.defeated.includes(champion.slug))).length;
+  const capacity = initialCapacity + Math.round((maximumCapacity - initialCapacity) * completed / challenges.regions.length);
+  return { continuous, capacity, total: capacity * 2 };
+}
+
+export type WildPopulation = ReturnType<typeof wildPopulation>;
 /** Chance de um selvagem ser brilhante (1 em 4096). */
 export const shinyChance = 1 / 4096;
 
@@ -19,7 +32,7 @@ export type WildEncounter = { id: string; species: number; level: number; shiny:
  */
 export type WildBoard = {
   id: string; region: number; map: WildMapId; minLevel: number; maxLevel: number; chosenMap: WildMapId | null;
-  pending: number; encounters: WildEncounter[];
+  total: number; pending: number; encounters: WildEncounter[];
 };
 /** O que o jogador escolhe na tela de configuração antes de procurar um mapa. */
 export type WildSettings = { region: number; minLevel: number; maxLevel: number; map: WildMapId | null };
@@ -100,7 +113,7 @@ function pick<T>(items: readonly T[], random: Random): T {
   return items[Math.floor(random() * items.length)]!;
 }
 
-function sorteio(board: WildBoard, badges: number, random: Random): WildEncounter | null {
+function sorteio(board: WildBoard, badges: number, random: Random, teamLevel?: number): WildEncounter | null {
   const { map, region, encounters: alive } = board;
   const pool = eligibleSpecies(map, region, badges);
   if (!pool.length) return null;
@@ -112,7 +125,7 @@ function sorteio(board: WildBoard, badges: number, random: Random): WildEncounte
   return {
     id: createUid(),
     species: species.id,
-    level: low + Math.floor(random() * (high - low + 1)),
+    level: teamLevel ?? low + Math.floor(random() * (high - low + 1)),
     shiny: random() < shinyChance,
     ivs: random() < perfectChance ? perfectIvs() : rollIvs(random),
   };
@@ -124,7 +137,7 @@ export function availableMaps(region: number, badges: number): WildMapId[] {
 }
 
 /** Procura um mapa novo conforme a configuração. Sem mapa escolhido, sorteia entre os possíveis; os Pokémon aparecem aos poucos. */
-export function searchMap(settings: WildSettings, badges: number, random: Random = Math.random): WildBoard | string {
+export function searchMap(settings: WildSettings, badges: number, population: WildPopulation, random: Random = Math.random): WildBoard | string {
   const { region } = settings;
   if (!unlockedRegions().includes(region)) return 'Esta região ainda está bloqueada.';
   const maps = availableMaps(region, badges);
@@ -142,21 +155,33 @@ export function searchMap(settings: WildSettings, badges: number, random: Random
   const [minLevel, maxLevel] = clampLevels(settings.minLevel, settings.maxLevel, badges);
   return {
     id: createUid(), region, map, minLevel, maxLevel, chosenMap: settings.map,
-    pending: spawnsPerMap, encounters: [],
+    total: population.total, pending: population.continuous ? 0 : population.total, encounters: [],
   };
 }
 
-/** Faz o próximo Pokémon aparecer. Devolve null se não há vaga (já há `maxAlive` soltos) ou se todos já apareceram. */
-export function spawnNext(board: WildBoard, badges: number, random: Random = Math.random): WildBoard | null {
-  if (board.pending <= 0 || board.encounters.length >= maxAlive) return null;
-  const encounter = sorteio(board, badges, random);
+export function pendingSpawns(board: WildBoard, population: WildPopulation) {
+  return board.pending + Math.max(0, population.total - board.total);
+}
+
+export function canSpawn(board: WildBoard, population: WildPopulation) {
+  return board.encounters.length < population.capacity && (population.continuous || pendingSpawns(board, population) > 0);
+}
+
+/** No Novo Jogo+, a média da equipe define o nível e cada vaga pode ser reposta indefinidamente. */
+export function spawnNext(board: WildBoard, badges: number, population: WildPopulation, teamLevel?: number, random: Random = Math.random): WildBoard | null {
+  if (!canSpawn(board, population)) return null;
+  const encounter = sorteio(board, badges, random, teamLevel);
   if (!encounter) return null;
-  return { ...board, pending: board.pending - 1, encounters: [...board.encounters, encounter] };
+  return {
+    ...board, total: Math.max(board.total, population.total),
+    pending: population.continuous ? 0 : pendingSpawns(board, population) - 1,
+    encounters: [...board.encounters, encounter],
+  };
 }
 
 /** Mapa concluído: nada mais vai aparecer e não sobrou nenhum Pokémon. */
-export function isCleared(board: WildBoard) {
-  return board.pending <= 0 && board.encounters.length === 0;
+export function isCleared(board: WildBoard, population: WildPopulation) {
+  return !population.continuous && pendingSpawns(board, population) === 0 && board.encounters.length === 0;
 }
 
 export function removeEncounter(board: WildBoard, id: string): WildBoard {
@@ -172,9 +197,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export function readWild(value: unknown): WildBoard | null {
   if (!isRecord(value) || !Array.isArray(value.encounters)) return null;
   const { id, region, map, pending } = value;
+  const total = typeof value.total === 'number' && Number.isSafeInteger(value.total) &&
+    value.total >= initialSpawns && value.total <= maximumSpawns ? value.total : initialSpawns;
   if (typeof id !== 'string' || !id || typeof region !== 'number' || !Number.isSafeInteger(region) || region < 1 || region > 9 ||
       typeof map !== 'string' || !wildMapIds.includes(map) ||
-      typeof pending !== 'number' || !Number.isSafeInteger(pending) || pending < 0 || pending > spawnsPerMap) return null;
+      typeof pending !== 'number' || !Number.isSafeInteger(pending) || pending < 0 || pending > total) return null;
 
   const ids = new Set<string>();
   const encounters = value.encounters.flatMap((entry: unknown): WildEncounter[] => {
@@ -187,7 +214,7 @@ export function readWild(value: unknown): WildBoard | null {
       id: encounterId, species, level: Math.min(100, Math.max(1, level)), shiny: entry.shiny === true,
       ivs: readIvs(entry.ivs, encounterId),
     }];
-  }).slice(0, maxAlive);
+  }).slice(0, maximumCapacity);
 
   // Mapas salvos antes da configuração não guardam os níveis: valem do 2 ao máximo liberado (ajustado ao sortear).
   const whole = (entry: unknown, fallback: number) =>
@@ -195,7 +222,7 @@ export function readWild(value: unknown): WildBoard | null {
   const chosenMap = typeof value.chosenMap === 'string' && wildMapIds.includes(value.chosenMap) ? value.chosenMap as WildMapId : null;
   return {
     id, region, map: map as WildMapId, minLevel: whole(value.minLevel, defaultMinLevel), maxLevel: whole(value.maxLevel, 100),
-    chosenMap, pending, encounters,
+    chosenMap, total, pending, encounters,
   };
 }
 

@@ -12,6 +12,11 @@ export const maxBoxNameLength = 20;
 export const pokedexTotal = 1025;
 export const starterUid = 'inicial';
 
+/** Média de nível arredondada, usada para escalar encontros no Novo Jogo+. */
+export function averageLevel(team: readonly { level: number }[]) {
+  return team.length ? Math.round(team.reduce((sum, { level }) => sum + level, 0) / team.length) : 5;
+}
+
 export type OwnedPokemon = {
   uid: string;
   species: number;

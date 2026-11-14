@@ -24,11 +24,13 @@ const minutesLeft = (ms: number) => Math.max(0, Math.ceil(ms / 60_000));
 type SellSort = 'value' | 'level' | 'stars' | 'name';
 const sellSortLabels: Record<SellSort, string> = { value: 'Maior valor', level: 'Maior nível', stars: 'Mais estrelas', name: 'Nome' };
 
-/** Quatro estrelas de IV: cheias até `count`, vazias depois. */
 function StarRow({ count }: { count: number }) {
   return (
     <span className="market-stars" role="img" aria-label={`${count} de ${maxStars} estrelas de IV`} data-stars={count}>
-      {Array.from({ length: maxStars }, (_, index) => <span key={index} data-on={index < count}>★</span>)}
+      <strong aria-hidden="true">{count}/{maxStars}</strong>
+      <span className="market-star-icons" aria-hidden="true">
+        <span>{'★'.repeat(count)}</span><span>{'☆'.repeat(maxStars - count)}</span>
+      </span>
     </span>
   );
 }
@@ -126,7 +128,7 @@ function BuyTab({ entries, money, now, loading, change, setMessage }: {
         <div className="shop-pills" role="group" aria-label="Estrelas de IV">
           {starFilters.map((count) => (
             <button key={count} type="button" aria-pressed={stars === count} onClick={() => setStars(count)}>
-              {count === 0 ? 'Todas' : `${'★'.repeat(count)}${count < maxStars ? '+' : ''}`}
+              {count === 0 ? 'Todas' : `${count}★${count < maxStars ? '+' : ''}`}
             </button>
           ))}
           <button type="button" aria-pressed={shinyOnly} onClick={() => setShinyOnly((value) => !value)}><Sparkles aria-hidden="true" /> Brilhante</button>
@@ -251,7 +253,7 @@ function SellTab({ owned, change, setMessage }: {
         <div className="shop-pills" role="group" aria-label="Estrelas de IV">
           {starFilters.map((count) => (
             <button key={count} type="button" aria-pressed={minStars === count} onClick={() => setMinStars(count)}>
-              {count === 0 ? 'Todas' : `${'★'.repeat(count)}${count < maxStars ? '+' : ''}`}
+              {count === 0 ? 'Todas' : `${count}★${count < maxStars ? '+' : ''}`}
             </button>
           ))}
         </div>

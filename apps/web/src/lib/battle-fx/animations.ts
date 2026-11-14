@@ -6,6 +6,7 @@ import {
 
 /* Blocos reutilizados: o impacto no alvo (explosão + tremida + clarão) e a investida de quem ataca. */
 const hit = (at: number, glyph: GlyphKind, n = 8, size = 4, radius = 30, shake = 5): Spec[] => [
+  ring({ at, dur: 220, where: 'tgt', r0: 3, r1: radius * 0.65, w: 2 }),
   burst({ at, dur: 460, glyph, n, size, radius, where: 'tgt', ring: true }),
   actor({ at, dur: 380, who: 'tgt', move: 'shake', amt: shake }),
   actor({ at, dur: 320, who: 'tgt', move: 'flash' }),
@@ -802,7 +803,123 @@ const fairy: FxAnimation[] = [
   ]),
 ];
 
+const signatureMoves: FxAnimation[] = [
+  def('ghost', 'special', 'shadow-ball', 'Núcleo espectral', [
+    orbit({ at: 0, dur: 400, where: 'src', glyph: 'wisp', n: 7, size: 4, r: 26, mode: 'in', turns: 1.5 }),
+    shot({ at: 400, dur: 500, glyph: 'orb', size: 11, trail: 4 }),
+    ring({ at: 900, dur: 250, where: 'tgt', r0: 36, r1: 4, inward: true }),
+    ...hit(1120, 'wisp', 12, 4, 44, 6),
+  ]),
+  def('dragon', 'special', 'draco-meteor', 'Chuva de meteoros', [
+    shot({ at: 0, dur: 350, from: 'src', to: 'skySrc', glyph: 'orb', size: 8, trail: 5 }),
+    rain({ at: 400, dur: 800, glyph: 'rock', n: 10, size: 6, spreadX: 70, fall: .45 }),
+    ...hit(800, 'spark', 12, 4, 48, 7), screen({ at: 800, dur: 400, amt: 3 }),
+  ]),
+  def('dark', 'special', 'dark-pulse', 'Anéis de escuridão', [
+    ring({ at: 0, dur: 320, where: 'src', r0: 28, r1: 3, inward: true }),
+    shot({ at: 320, dur: 700, glyph: 'ring', size: 10, n: 5, stagger: .5, grow: 1.6, face: false }),
+    orbit({ at: 800, dur: 500, where: 'tgt', glyph: 'wisp', n: 8, size: 3, r: 30, mode: 'out' }),
+    ...hit(1020, 'spark', 8, 3, 32, 5),
+  ]),
+  def('psychic', 'special', 'psyshock', 'Prismas mentais', [
+    orbit({ at: 0, dur: 450, where: 'src', glyph: 'shard', n: 6, size: 5, r: 28, mode: 'hold' }),
+    shot({ at: 450, dur: 550, glyph: 'shard', size: 6, n: 6, stagger: .5, spreadStart: 30, trail: 2 }),
+    ...hit(1000, 'star', 10, 3, 38, 5),
+  ]),
+  def('fighting', 'physical', 'close-combat', 'Sequência corpo a corpo', [
+    lunge(0, 1000, 98),
+    slash({ at: 300, dur: 180, style: 'cut', size: 20 }),
+    ...hit(300, 'fist', 3, 4, 16, 3),
+    slash({ at: 500, dur: 180, style: 'cut', size: 20, flip: true }),
+    ...hit(500, 'fist', 3, 4, 16, 3),
+    ...hit(750, 'star', 10, 5, 40, 7), knock(750, 14),
+  ]),
+  def('ground', 'special', 'earth-power', 'Erupção subterrânea', [
+    ring({ at: 0, dur: 500, where: 'tgtFeet', n: 3, r0: 34, r1: 5, inward: true, flat: .3 }),
+    rise({ at: 450, dur: 650, where: 'tgtFeet', glyph: 'rock', n: 9, size: 6, spreadX: 45, height: 2 }),
+    ...hit(650, 'spark', 8, 3, 34, 6), screen({ at: 450, dur: 600, amt: 3 }),
+  ]),
+  def('rock', 'physical', 'stone-edge', 'Círculo de pedras', [
+    orbit({ at: 0, dur: 500, where: 'tgtFeet', glyph: 'rock', n: 7, size: 4, r: 30, flat: .3, mode: 'in' }),
+    rise({ at: 450, dur: 600, where: 'tgtFeet', glyph: 'spike', n: 7, size: 8, spreadX: 38, height: 1.5 }),
+    ...hit(700, 'shard', 12, 3, 38, 6), knock(700),
+  ]),
+  def('flying', 'special', 'air-slash', 'Lâmina de vento', [
+    ring({ at: 0, dur: 300, where: 'src', r0: 26, r1: 4, inward: true }),
+    shot({ at: 280, dur: 420, glyph: 'crescent', size: 12, trail: 4, spin: 1 }),
+    slash({ at: 700, dur: 300, style: 'cut', size: 36 }),
+    ...hit(700, 'feather', 8, 4, 38, 5),
+  ]),
+  def('poison', 'special', 'sludge-wave', 'Maré tóxica', [
+    burst({ at: 0, dur: 400, where: 'srcFeet', glyph: 'bubble', n: 10, size: 4, radius: 22, flash: false }),
+    wave({ at: 300, dur: 1000, style: 'poison', height: 48, length: 120 }),
+    rain({ at: 850, dur: 600, glyph: 'blob', n: 10, size: 4, spreadX: 45, fall: .4 }),
+    actor({ at: 850, dur: 500, who: 'tgt', move: 'wobble', amt: 6 }),
+  ]),
+  def('fairy', 'special', 'moonblast', 'Lua crescente', [
+    orbit({ at: 0, dur: 500, where: 'skySrc', glyph: 'star', n: 8, size: 3, r: 32, mode: 'in' }),
+    shot({ at: 500, dur: 600, from: 'skySrc', to: 'tgt', glyph: 'crescent', size: 12, trail: 4, face: false }),
+    ...hit(1100, 'star', 14, 4, 46, 6),
+  ]),
+  def('normal', 'status', 'recover', 'Recuperação luminosa', [
+    stream({ at: 0, dur: 700, from: 'srcFeet', to: 'src', glyph: 'spark', n: 16, size: 3, spread: 30, rate: 1.5 }),
+    orbit({ at: 200, dur: 900, where: 'src', glyph: 'heart', n: 5, size: 3, r: 24, mode: 'in' }),
+    ring({ at: 700, dur: 500, where: 'srcFeet', n: 2, r0: 5, r1: 34, flat: .3 }),
+  ]),
+  def('grass', 'physical', 'leaf-blade', 'Dupla lâmina de folhas', [
+    orbit({ at: 0, dur: 350, where: 'src', glyph: 'leaf', n: 6, size: 4, r: 22, mode: 'hold' }),
+    lunge(250, 600, 96),
+    slash({ at: 500, dur: 240, style: 'arc', size: 32 }),
+    slash({ at: 650, dur: 300, style: 'arc', size: 32, flip: true }),
+    ...hit(650, 'leaf', 12, 4, 40, 5), knock(650),
+  ]),
+  def('fire', 'special', 'fire-blast', 'Explosão de fogo', [
+    orbit({ at: 0, dur: 350, where: 'src', glyph: 'flame', n: 6, size: 3, r: 20, mode: 'in' }),
+    shot({ at: 300, dur: 440, glyph: 'flame', size: 9, trail: 5 }),
+    ...hit(740, 'flame', 16, 5, 48, 7), slash({ at: 740, dur: 450, style: 'x', size: 38 }),
+    knock(740, 12),
+  ]),
+  def('electric', 'special', 'thunderbolt', 'Descarga ramificada', [
+    orbit({ at: 0, dur: 340, where: 'src', glyph: 'spark', n: 8, size: 3, r: 20, mode: 'in' }),
+    bolt({ at: 340, dur: 460, from: 'src', to: 'tgt', width: 4, branches: 4 }),
+    ...hit(400, 'spark', 12, 3, 38, 5),
+    actor({ at: 400, dur: 600, who: 'tgt', move: 'jitter', amt: 4 }),
+  ]),
+  def('water', 'special', 'water-pulse', 'Pulso aquático', [
+    ring({ at: 0, dur: 300, where: 'src', r0: 22, r1: 4, inward: true }),
+    shot({ at: 280, dur: 600, glyph: 'ring', size: 8, n: 3, stagger: .3, grow: 1.8, face: false }),
+    ...hit(880, 'bubble', 12, 4, 40, 4), knock(880),
+  ]),
+  def('grass', 'special', 'energy-ball', 'Esfera de energia', [
+    orbit({ at: 0, dur: 420, where: 'src', glyph: 'leaf', n: 8, size: 3, r: 28, mode: 'in' }),
+    shot({ at: 420, dur: 460, glyph: 'orb', size: 10, trail: 4 }),
+    ...hit(880, 'leaf', 14, 4, 44, 5),
+  ]),
+  def('ice', 'physical', 'ice-shard', 'Estilhaço veloz', [
+    rise({ at: 0, dur: 240, where: 'srcFeet', glyph: 'shard', n: 3, size: 5, height: 1, spreadX: 16 }),
+    shot({ at: 220, dur: 300, glyph: 'shard', size: 7, n: 3, stagger: .2, trail: 3, ease: 'in' }),
+    ...hit(520, 'snow', 14, 3, 34, 4), knock(520),
+  ]),
+  def('bug', 'physical', 'x-scissor', 'Tesoura cruzada', [
+    actor({ at: 0, dur: 180, who: 'src', move: 'squash', amt: 6 }), lunge(180, 520, 92),
+    slash({ at: 390, dur: 200, style: 'cut', size: 30 }),
+    slash({ at: 500, dur: 260, style: 'cut', size: 30, flip: true }),
+    ...hit(520, 'leaf', 8, 3, 32, 6), knock(520, 10),
+  ]),
+  def('steel', 'physical', 'gyro-ball', 'Giro metálico', [
+    actor({ at: 0, dur: 700, who: 'src', move: 'spin' }),
+    orbit({ at: 0, dur: 650, where: 'src', glyph: 'gear', n: 5, size: 4, r: 22, turns: 3, mode: 'hold' }),
+    lunge(320, 620, 100), ...hit(600, 'spark', 14, 3, 44, 7), knock(600, 12),
+  ]),
+  def('normal', 'status', 'protect', 'Barreira protetora', [
+    ring({ at: 0, dur: 1000, where: 'src', n: 3, r0: 8, r1: 32, flat: 1.2, w: 3 }),
+    orbit({ at: 100, dur: 900, where: 'src', glyph: 'spark', n: 8, size: 2, r: 30, turns: 1, mode: 'hold' }),
+    actor({ at: 100, dur: 800, who: 'src', move: 'flash' }),
+  ]),
+];
+
 export const fxAnimations: readonly FxAnimation[] = [
+  ...signatureMoves,
   ...normal, ...fire, ...water, ...electric, ...grass, ...ice, ...fighting, ...poison, ...ground,
   ...flying, ...psychic, ...bug, ...rock, ...ghost, ...dragon, ...dark, ...steel, ...fairy,
 ];

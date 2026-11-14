@@ -8,12 +8,12 @@ import { Input } from '@/components/ui/input';
 import type { ChangeGame, GameState } from '@/lib/game-state';
 import { gradeBadge, gradeNames, gradeOf, isSpecial, ivStars, specialMessage, starText, type Grade } from '@/lib/ivs';
 import type { JourneySave } from '@/lib/journey-saves';
-import { companionOf } from '@/lib/pokemon-collection';
+import { averageLevel, companionOf } from '@/lib/pokemon-collection';
 import { getTrainerSprite } from '@/lib/trainer-sprites';
 import {
-  availableMaps, canChooseMap, chanceOfStars, clampLevels, defaultSettings, isCleared, levelCap,
-  maxAlive, minWildLevel, searchMap, settingsOf, shinyChance, spawnNext, spawnsPerMap, unlockedRegions, wildBadges,
-  type WildBoard, type WildEncounter, type WildSettings,
+  availableMaps, canChooseMap, canSpawn, chanceOfStars, clampLevels, defaultSettings, isCleared, levelCap,
+  minWildLevel, pendingSpawns, searchMap, settingsOf, shinyChance, spawnNext, unlockedRegions, wildBadges, wildPopulation,
+  type WildBoard, type WildEncounter, type WildPopulation, type WildSettings,
 } from '@/lib/wild';
 import { exploreActionFor, getExploreKeys, useExploreKeys } from '@/lib/controls';
 import { gameActions, shortcutLabel } from './game-navigation';
@@ -68,6 +68,7 @@ function sheetPosition(column: number, row: number) {
 }
 
 type WorldProps = {
+  population: WildPopulation;
   board: WildBoard;
   trainerUrl: string | null;
   /** Folha do treinador correndo, quando existe; sem ela, correr só acelera a animação de andar. */
@@ -180,7 +181,7 @@ function WildWorld(props: WorldProps) {
           stepWanderer(map, actor, dt, random, [...playerBodies, ...others]);
         }
 
-        if (current.pending > 0 && current.encounters.length < maxAlive) {
+        if (canSpawn(current, latest.current.population)) {
           spawnTimer -= dt;
           if (spawnTimer <= 0) {
             spawnTimer = 3 + random() * 3;
@@ -367,8 +368,10 @@ function LevelField({ label, value, min, max, onChange }: {
 }
 
 /** A tela de configuração: região, faixa de nível e mapa, antes de procurar selvagens (como no jogo antigo). */
-function WildSetup({ badges, settings, onChange, board, onSearch, onResume, message }: {
+function WildSetup({ badges, population, teamLevel, settings, onChange, board, onSearch, onResume, message }: {
   badges: number;
+  population: WildPopulation;
+  teamLevel: number | undefined;
   settings: WildSettings;
   onChange: (settings: WildSettings) => void;
   board: WildBoard | null;
@@ -397,12 +400,12 @@ function WildSetup({ badges, settings, onChange, board, onSearch, onResume, mess
         <header className="wild-setup-header">
           <div>
             <h2>Selvagens</h2>
-            <p>Escolha onde procurar. {spawnsPerMap} Pokémon aparecem aos poucos em cada mapa; encoste em um e aperte {explore.interact} ou Enter para enfrentá-lo.</p>
+            <p>Escolha onde procurar. Encoste em um Pokémon e aperte {explore.interact} ou Enter para enfrentá-lo.</p>
           </div>
           {board && resumeMap && (
             <Button variant="secondary" onClick={onResume}>
               <Compass aria-hidden="true" /> Voltar ao mapa: {resumeMap.name}
-              <span className="wild-count">{board.pending + board.encounters.length} / {spawnsPerMap}</span>
+              <span className="wild-count">{wildCount(board, population)}</span>
             </Button>
           )}
         </header>
@@ -430,9 +433,11 @@ function WildSetup({ badges, settings, onChange, board, onSearch, onResume, mess
             <h3 id="wild-info-title" className="game-section-title">{regionNames[settings.region - 1]} · Geração {settings.region}</h3>
             {regionUnlocked ? (
               <ul className="wild-facts">
-                <li>Insígnias: <b>{Math.min(badges, 8)}/8</b></li>
-                <li>Nível máximo liberado: <b>{cap}</b> <small>(sobe a cada insígnia)</small></li>
-                <li>Pokémon por mapa: <b>{spawnsPerMap}</b>, até <b>{maxAlive}</b> ao mesmo tempo</li>
+                {teamLevel === undefined ? <>
+                  <li>Insígnias: <b>{Math.min(badges, 8)}/8</b></li>
+                  <li>Nível máximo liberado: <b>{cap}</b> <small>(sobe a cada insígnia)</small></li>
+                  <li>Pokémon por mapa: <b>{population.total}</b>, até <b>{population.capacity}</b> ao mesmo tempo</li>
+                </> : <li>Encontros contínuos, até <b>{population.capacity}</b> Pokémon ao mesmo tempo</li>}
                 <li>Mapas com Pokémon nesta região: <b>{maps.length}</b> de {wildMaps.length}</li>
                 <li>Brilhante: <b>{oneIn(shinyChance)}</b></li>
                 <li><span className="wild-stars" data-stars="3">★★★</span> IVs excelentes: <b>≈ {oneIn(chanceOfStars(3))}</b></li>
@@ -450,11 +455,13 @@ function WildSetup({ badges, settings, onChange, board, onSearch, onResume, mess
 
           <section className="game-panel wild-search-panel" aria-labelledby="wild-search-title">
             <h3 id="wild-search-title" className="game-section-title">Procura</h3>
-            <LevelField label="Nível mínimo" value={settings.minLevel} min={minWildLevel} max={cap}
-              onChange={(value) => setLevels(value, settings.maxLevel, 'min')} />
-            <LevelField label="Nível máximo" value={settings.maxLevel} min={minWildLevel} max={cap}
-              onChange={(value) => setLevels(settings.minLevel, value, 'max')} />
-            <p className="wild-note">Os níveis vão de {minWildLevel} até o máximo liberado ({cap}) e valem para todos os Pokémon deste mapa.</p>
+            {teamLevel === undefined ? <>
+              <LevelField label="Nível mínimo" value={settings.minLevel} min={minWildLevel} max={cap}
+                onChange={(value) => setLevels(value, settings.maxLevel, 'min')} />
+              <LevelField label="Nível máximo" value={settings.maxLevel} min={minWildLevel} max={cap}
+                onChange={(value) => setLevels(settings.minLevel, value, 'max')} />
+              <p className="wild-note">Os níveis vão de {minWildLevel} até o máximo liberado ({cap}) e valem para todos os Pokémon deste mapa.</p>
+            </> : <p className="wild-note">Novos selvagens aparecem no nível médio da equipe: <b>{teamLevel}</b>.</p>}
 
             <div className="wild-field-label" id="wild-map-label">Mapa</div>
             <div className="wild-map-grid" role="radiogroup" aria-labelledby="wild-map-label">
@@ -496,9 +503,18 @@ function WildSetup({ badges, settings, onChange, board, onSearch, onResume, mess
 
 type Alert = { id: string; text: string; grade: Grade };
 
+function wildCount(board: WildBoard, population: WildPopulation) {
+  return population.continuous
+    ? `${board.encounters.length} / ${population.capacity}`
+    : `${pendingSpawns(board, population) + board.encounters.length} / ${Math.max(board.total, population.total)}`;
+}
+
 export default function WildScreen({ save, game, change }: Props) {
   const explore = useExploreKeys();
   const { wild, progress } = game;
+  const population = wildPopulation(progress);
+  const postGame = population.continuous;
+  const teamLevel = postGame ? averageLevel(game.collection.team) : undefined;
   const badges = wildBadges(progress);
   const [view, setView] = useState<'config' | 'map'>(wild ? 'map' : 'config');
   const [settings, setSettings] = useState<WildSettings>(() => wild ? settingsOf(wild, badges) : defaultSettings(badges));
@@ -516,7 +532,7 @@ export default function WildScreen({ save, game, change }: Props) {
   const fighting = wild?.encounters.find((encounter) => encounter.id === battleId) ?? null;
   const near = wild?.encounters.find((encounter) => encounter.id === nearId) ?? null;
   const map = wild ? getWildMap(wild.map) : null;
-  const cleared = wild ? isCleared(wild) : false;
+  const cleared = wild ? isCleared(wild, population) : false;
   const specials = wild?.encounters.filter(isSpecial) ?? [];
   const trainer = getTrainerSprite(save.trainerSprite);
   // Quem tem folha de corrida chama "..._run" no lugar de "..._default".
@@ -537,7 +553,7 @@ export default function WildScreen({ save, game, change }: Props) {
   useEffect(() => {
     if (!showingMap || !wild) return;
     const fresh = wild.encounters.filter((encounter) => !announced.current.has(encounter.id));
-    for (const encounter of fresh) announced.current.add(encounter.id);
+    announced.current = new Set(wild.encounters.map((encounter) => encounter.id));
     const news = fresh.flatMap((encounter): Alert[] => {
       const text = specialMessage(encounterName(encounter), encounter);
       const grade = gradeOf(encounter);
@@ -561,7 +577,7 @@ export default function WildScreen({ save, game, change }: Props) {
     setConfirmSearch(false);
     let error: string | null = null;
     const failure = change((state) => {
-      const board = searchMap(settings, wildBadges(state.progress));
+      const board = searchMap(settings, wildBadges(state.progress), wildPopulation(state.progress));
       if (typeof board === 'string') {
         error = board;
         return board;
@@ -591,7 +607,9 @@ export default function WildScreen({ save, game, change }: Props) {
   // O simulador chama isto de tempos em tempos; sem vaga ou sem Pokémon a aparecer, nada muda.
   function spawn() {
     change((state) => {
-      const board = state.wild && spawnNext(state.wild, wildBadges(state.progress));
+      const currentPopulation = wildPopulation(state.progress);
+      const level = currentPopulation.continuous ? averageLevel(state.collection.team) : undefined;
+      const board = state.wild && spawnNext(state.wild, wildBadges(state.progress), currentPopulation, level);
       return board ? { ...state, wild: board } : 'Nada a fazer.';
     });
   }
@@ -681,7 +699,7 @@ export default function WildScreen({ save, game, change }: Props) {
     <div className="wild-stage" data-view={showingMap ? 'map' : 'config'}>
       {showingMap && wild && map ? (
         <>
-          <WildWorld key={wild.id} board={wild} paused={catching !== null || confirmSearch || fighting !== null} arrows={arrows} onSpawn={spawn} onNear={setNearId}
+          <WildWorld key={wild.id} board={wild} population={population} paused={catching !== null || confirmSearch || fighting !== null} arrows={arrows} onSpawn={spawn} onNear={setNearId}
             onInteract={setBattleId} onCapture={(id) => startCatch(wild.encounters.find((encounter) => encounter.id === id))} trainerUrl={trainer?.url ?? null} trainerRunUrl={trainerRun?.url ?? null}
             companion={buddyEntry?.sprite ? {
               uid: buddy.uid, sprite: buddyEntry.sprite, shiny: buddy.shiny, name: buddy.nickname ?? buddyEntry.displayName,
@@ -692,11 +710,12 @@ export default function WildScreen({ save, game, change }: Props) {
               <div className="wild-chip">
                 <strong>{map.name}</strong>
                 <span className="flex gap-1">{map.types.map((type) => <TypeBadge key={type} type={type} />)}</span>
-                <span className="wild-count" title="Pokémon que ainda vão aparecer ou estão no mapa">
-                  {wild.pending + wild.encounters.length} / {spawnsPerMap}
+                <span className="wild-count" title={postGame ? 'Pokémon no mapa' : 'Pokémon que ainda vão aparecer ou estão no mapa'}>
+                  {wildCount(wild, population)}
                 </span>
                 <span className="wild-sub">
-                  {regionNames[wild.region - 1]} · Nv {wild.minLevel}–{wild.maxLevel} · {progress.badges} {progress.badges === 1 ? 'insígnia' : 'insígnias'}
+                  {regionNames[wild.region - 1]} · {postGame ? `Novos encontros: Nv ${teamLevel}`
+                    : `Nv ${wild.minLevel}–${wild.maxLevel} · ${progress.badges} ${progress.badges === 1 ? 'insígnia' : 'insígnias'}`}
                 </span>
               </div>
               {specials.length > 0 && (
@@ -770,7 +789,7 @@ export default function WildScreen({ save, game, change }: Props) {
           )}
         </>
       ) : (
-        <WildSetup badges={badges} settings={settings} onChange={setSettings} board={wild} message={message}
+        <WildSetup badges={badges} population={population} teamLevel={teamLevel} settings={settings} onChange={setSettings} board={wild} message={message}
           onSearch={() => startSearch()} onResume={() => { setMessage(null); setView('map'); }} />
       )}
 
