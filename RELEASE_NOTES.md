@@ -1,3 +1,6 @@
+## Pokémon Simulator Evolution 1.4.3
+
+- **Chance de captura:** percentual destacado em uma etiqueta de alto contraste, separado do nome e da descrição do item.
 ## Pokémon Simulator Evolution 1.4.2
 
 - **Centro Pokémon:** corrigida a exibição da sprite da equipe, que mostrava a folha inteira em vez do quadro frontal.

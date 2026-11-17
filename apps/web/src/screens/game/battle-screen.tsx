@@ -433,7 +433,7 @@ export default function BattleScreen({ encounter, opponent, game, scene, onFinis
                 </div>
                 {bagTab === 'captura' && items.balls.map((ball) => (
                   <button key={ball.name} type="button" className="battle-btn" disabled={busy} onClick={() => void run({ kind: 'ball', item: ball.name })}>
-                    <span>{ball.displayName}<br /><small>{getBattleItem(ball.name)?.description}</small><small className="battle-capture-chance">Chance agora: {Math.round(battleBallChance(battle, ball.name, bag) * 1000) / 10}%</small></span><b>×{ball.quantity}</b>
+                    <span className="battle-ball-copy">{ball.displayName}<small>{getBattleItem(ball.name)?.description}</small><strong className="battle-capture-chance" aria-label={`Chance de captura ${Math.round(battleBallChance(battle, ball.name, bag) * 1000) / 10}%`}>Captura: {Math.round(battleBallChance(battle, ball.name, bag) * 1000) / 10}%</strong></span><b>×{ball.quantity}</b>
                   </button>
                 ))}
                 {bagTab === 'cura' && items.heals.map((heal) => (

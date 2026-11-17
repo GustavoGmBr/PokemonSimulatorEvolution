@@ -116,6 +116,7 @@
 .battle-bag-tabs { display: flex; gap: .4rem; margin-bottom: .5rem; }
 .battle-bag-tabs button { flex: 1; border: 1px solid var(--border); border-radius: .6rem; padding: .45rem .65rem; color: var(--muted-foreground); font-size: .82rem; }
 .battle-bag-tabs button[aria-selected="true"] { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, transparent); color: var(--foreground); font-weight: 700; }
-.battle-capture-chance { display: block; margin-top: .25rem; color: var(--primary); font-weight: 700; }
+.battle-ball-copy { display: grid; justify-items: start; gap: .2rem; }
+.battle-capture-chance { display: inline-flex; align-items: center; margin-top: .15rem; padding: .2rem .5rem; border: 1px solid #16803c; border-radius: 999px; background: #dcfce7; color: #14532d; font-size: .82rem; font-weight: 800; line-height: 1.2; }
 .battle-team-choice { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .4rem; }
 .battle-analyze { min-width: 6rem; padding-inline: .65rem; font-size: .76rem; }
