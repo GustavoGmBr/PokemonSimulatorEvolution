@@ -1,3 +1,6 @@
+## Pokémon Simulator Evolution 1.4.2
+
+- **Centro Pokémon:** corrigida a exibição da sprite da equipe, que mostrava a folha inteira em vez do quadro frontal.
 ## Pokémon Simulator Evolution 1.4.1
 
 - **Batalhas:** efeitos sonoros mais curtos e com volume reduzido; mochila organizada por abas e chance de captura exibida por Pokébola.

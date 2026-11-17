@@ -15,7 +15,7 @@ export default function PokemonCenterScreen({ game, change }: { game: GameState;
     </div>
     <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
       {game.collection.team.map((pokemon) => <div key={pokemon.uid} className="flex items-center gap-2 rounded-lg border p-2">
-        <PokemonSprite pokemon={pokemon} className="size-12" />
+        <PokemonSprite pokemon={pokemon} className="dex-thumb pokemon-center-sprite" />
         <div className="min-w-0"><strong className="block truncate">{pokemonName(pokemon)}</strong>
           <span className="text-xs text-muted-foreground">Nv. {pokemon.level}{pokemon.hp === 0 ? ' · Desmaiado' : ''}{pokemon.status ? ` · ${pokemon.status}` : ''}</span></div>
       </div>)}
