@@ -113,3 +113,9 @@
   opacity: .85;
 }
 .battle-btn-side { display: grid; justify-items: end; gap: .15rem; }
+.battle-bag-tabs { display: flex; gap: .4rem; margin-bottom: .5rem; }
+.battle-bag-tabs button { flex: 1; border: 1px solid var(--border); border-radius: .6rem; padding: .45rem .65rem; color: var(--muted-foreground); font-size: .82rem; }
+.battle-bag-tabs button[aria-selected="true"] { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, transparent); color: var(--foreground); font-weight: 700; }
+.battle-capture-chance { display: block; margin-top: .25rem; color: var(--primary); font-weight: 700; }
+.battle-team-choice { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .4rem; }
+.battle-analyze { min-width: 6rem; padding-inline: .65rem; font-size: .76rem; }

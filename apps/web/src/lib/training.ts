@@ -69,7 +69,7 @@ function train(game: GameState, pokemon: OwnedPokemon, item: string): OwnedPokem
   if (stat) return pokemon.ivs[stat] >= maxIv ? 'Este IV já está no máximo.' : { ...pokemon, ivs: { ...pokemon.ivs, [stat]: pokemon.ivs[stat] + 1 } };
   const species = getBattleSpecies(pokemon.species);
   if (!species || (item !== 'rare-candy' && !Object.hasOwn(candies, item))) return 'Este item não pode ser usado fora de batalha.';
-  const cap = Math.max(pokemon.level, game.progress.challenges.defeated.includes('blue') ? 100 : levelCap(wildBadges(game.progress)));
+  const cap = levelCap(wildBadges(game.progress));
   if (pokemon.level >= cap) return 'Este Pokémon atingiu o nível máximo liberado.';
   const exp = Math.min(expForLevel(species.growthRate, cap), item === 'rare-candy'
     ? expForLevel(species.growthRate, pokemon.level + 1)

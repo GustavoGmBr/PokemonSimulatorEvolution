@@ -38,6 +38,7 @@ const MissionsScreen = lazy(() => import('./activities-screen').then(({ Missions
 const LineupsScreen = lazy(() => import('./activities-screen').then(({ LineupsScreen }) => ({ default: LineupsScreen })));
 const CasinoScreen = lazy(() => import('./casino/casino-screen'));
 const ChallengesScreen = lazy(() => import('./challenges-screen'));
+const PokemonCenterScreen = lazy(() => import('./pokemon-center-screen'));
 
 function TeamPanel({ game, change, navigate, children }: Pick<Props, 'game' | 'change' | 'navigate'> & { children: (open: (uid: string) => void) => ReactNode }) {
   const [openUid, setOpenUid] = useState<string | null>(null);
@@ -174,6 +175,8 @@ export function GameAreaContent(props: Props) {
   const { area, pokemonId, save, game, change, navigate, reduceMotion, setReduceMotion, fullscreen, toggleFullscreen } = props;
 
   switch (area) {
+    case 'centro-pokemon':
+      return <PokemonCenterScreen game={game} change={change} />;
     case 'mochila':
     case 'missoes':
     case 'equipes':

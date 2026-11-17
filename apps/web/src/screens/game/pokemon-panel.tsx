@@ -16,6 +16,7 @@ import { TypeBadge } from './pokedex-media';
 import { formatMoney } from './trainer-card';
 import { MovesSection } from './moves-section';
 import { TrainingActions } from './inventory-screen';
+import { EvolutionLine } from './evolution-line';
 import { formOf } from '@/lib/training';
 import { PokemonMarks, PokemonSprite, pokemonName, speciesName } from './pokemon-ui';
 
@@ -110,10 +111,21 @@ export default function PokemonPanel({ uid, state, change, onClose, onOpenPokede
         </div>
 
         <MovesSection pokemon={pokemon} state={state} change={change} />
+        <details open className="rounded-lg border p-3">
+          <summary className="cursor-pointer font-bold">Evolução e formas</summary>
+          <div className="mt-3 grid gap-4">
+            {details ? <EvolutionLine chain={details.evolutionChain} currentSpecies={pokemon.species} /> :
+              <p role="status" className="text-sm text-muted-foreground">{unavailable ? 'Linha evolutiva indisponível.' : 'Carregando linha evolutiva…'}</p>}
+            {formOf(pokemon) && <p className="text-sm text-muted-foreground">Forma atual: <strong className="text-foreground">{formOf(pokemon)?.displayName}</strong></p>}
+            <div className="grid gap-2 border-t pt-3">
+              <h3 className="text-sm font-bold">Evoluções e formas disponíveis</h3>
+              <TrainingActions pokemon={pokemon} game={state} change={change} mode="evolution" emptyText="Nenhuma evolução ou forma disponível no momento." />
+            </div>
+          </div>
+        </details>
         <details className="rounded-lg border p-3">
-          <summary className="cursor-pointer font-bold">Evolução, formas e treinamento</summary>
-          {formOf(pokemon) && <p className="my-2 text-sm">{formOf(pokemon)?.displayName}</p>}
-          <div className="mt-2"><TrainingActions pokemon={pokemon} game={state} change={change} /></div>
+          <summary className="cursor-pointer font-bold">Treinamento</summary>
+          <div className="mt-3"><TrainingActions pokemon={pokemon} game={state} change={change} mode="training" emptyText="Nenhum item de treinamento disponível na mochila." /></div>
         </details>
 
         <section className="grid gap-2" aria-labelledby="panel-stats">

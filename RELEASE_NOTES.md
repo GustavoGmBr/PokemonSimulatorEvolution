@@ -1,3 +1,10 @@
+## Pokémon Simulator Evolution 1.4.1
+
+- **Batalhas:** efeitos sonoros mais curtos e com volume reduzido; mochila organizada por abas e chance de captura exibida por Pokébola.
+- **Análise:** IVs consultáveis durante a batalha e na ficha do Pokémon.
+- **Recuperação:** Pokémon derrotados ficam debilitados fora de torneios; cure a equipe no Centro Pokémon ou pague ₽500 para curá-la no mapa.
+- **Progressão:** doces de EXP respeitam o limite definido pelas insígnias de ginásio.
+- **Equipe:** evolução e treinamento em seções separadas, com sprites oficiais da PokéAPI para o Pokémon atual e suas próximas evoluções.
 ## Pokémon Simulator Evolution 1.4.0
 
 Baixe **PokemonSimulatorEvolution-v1.4.0-full-win-x64.zip**, extraia a pasta e abra **PokemonSimulatorEvolution.exe**. Quem já tem o jogo instalado pode atualizar pelo launcher.

@@ -37,6 +37,9 @@ export type OwnedPokemon = {
   /** Bola com que foi capturado (nome do item); conta no valor de venda. Ausente = Poké Bola. */
   ball?: string;
   form?: string;
+  /** HP restante após uma batalha; ausente em saves antigos significa HP cheio. */
+  hp?: number;
+  status?: 'burn' | 'poison' | 'paralysis' | 'sleep' | 'freeze' | null;
 };
 export type PcBox = { name: string; slots: (OwnedPokemon | null)[] };
 /** `companion` é o uid do Pokémon que acompanha o treinador; sem ele (ou fora da equipe), vale o primeiro da equipe. */
@@ -105,6 +108,8 @@ function readPokemon(value: unknown): OwnedPokemon | null {
     ...(readNames(value.pendingMoves, 20)?.length ? { pendingMoves: readNames(value.pendingMoves, 20) } : {}),
     ...(readNames(value.tms, 400) ? { tms: readNames(value.tms, 400) } : {}),
     ...(typeof value.ball === 'string' && /^[a-z0-9-]{1,40}$/.test(value.ball) ? { ball: value.ball } : {}),
+    ...(typeof value.hp === 'number' && Number.isSafeInteger(value.hp) && value.hp >= 0 && value.hp <= 9999 ? { hp: value.hp } : {}),
+    ...(['burn', 'poison', 'paralysis', 'sleep', 'freeze'].includes(String(value.status)) ? { status: value.status as OwnedPokemon['status'] } : value.status === null ? { status: null } : {}),
   };
 }
 

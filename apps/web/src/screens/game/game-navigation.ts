@@ -1,5 +1,5 @@
 import {
-  Backpack, BookOpen, CircleHelp, Coins, Compass, Crosshair, Gamepad2, House, IdCard, ListChecks, Medal, Monitor,
+  Backpack, BookOpen, CircleHelp, Coins, Compass, Crosshair, Gamepad2, HeartPulse, House, IdCard, ListChecks, Medal, Monitor,
   PawPrint, Search, Settings2, ShoppingBag, Skull, Store, Swords, Trophy, Users,
   type LucideIcon,
 } from 'lucide-react';
@@ -16,6 +16,7 @@ function withConfigurableKey<T extends { id: string; key: string }>(items: reado
 const defaultAreas = [
   { id: 'mochila', label: 'Mochila', key: 'N', icon: Backpack, description: 'Consulte seus itens por categoria e use recursos de treinamento.' },
   { id: 'equipes', label: 'Equipes salvas', key: 'Q', icon: Users, description: 'Crie formações e alterne a equipe ativa.' },
+  { id: 'centro-pokemon', label: 'Centro Pokémon', key: '5', icon: HeartPulse, description: 'Cure gratuitamente sua equipe entre as batalhas.' },
   { id: 'inicio', label: 'Início', key: 'I', icon: House, description: 'Acompanhe sua jornada em Kanto.' },
   { id: 'treinadores', label: 'Treinadores', key: 'D', icon: Users, description: 'Desafie treinadores e vença batalhas por recompensas.' },
   { id: 'ginasios', label: 'Ginásios', key: 'Y', icon: Medal, description: 'Enfrente líderes de ginásio, a Elite dos 4 e campeões.' },
@@ -48,7 +49,7 @@ type Section = { id: string; label: string; icon: LucideIcon; areas: readonly Ga
 // Menu lateral: cada seção abre um submenu com suas áreas. "perfil" fica no rodapé, com a foto do treinador.
 export const menuSections = [
   { id: 'batalhas', label: 'Batalhas', icon: Swords, areas: ['treinadores', 'ginasios', 'selvagens', 'torneios', 'chefes'] },
-  { id: 'pokemons', label: 'Pokémons', icon: PawPrint, areas: ['pokedex', 'equipe', 'equipes', 'pc'] },
+  { id: 'pokemons', label: 'Pokémons', icon: PawPrint, areas: ['pokedex', 'equipe', 'equipes', 'pc', 'centro-pokemon'] },
   { id: 'comercio', label: 'Comércio', icon: Coins, areas: ['mochila', 'loja', 'mercado', 'cassino'] },
   { id: 'perfil', label: 'Perfil', icon: IdCard, areas: ['opcoes', 'treinador', 'missoes'] },
 ] as const satisfies readonly Section[];

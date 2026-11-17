@@ -3,7 +3,7 @@ import { duckRadio } from '@/lib/radio';
 import { getSettings } from '@/lib/settings';
 
 export const effects = {
-  /** Música de abertura da batalha (~15 s). */
+  /** Abertura da batalha: trecho curto e discreto. */
   battle: { file: 'pokemon-battle.mp3', duck: false },
   /** Fanfarra da captura (~5 s). */
   catching: { file: 'pokemon-catching.mp3', duck: true },
@@ -25,12 +25,16 @@ export function playEffect(id: EffectId): PlayingEffect {
   const { effectsEnabled, effectsVolume } = getSettings();
   if (!effectsEnabled || effectsVolume <= 0 || typeof Audio === 'undefined') return none;
   const audio = new Audio(effectUrl(id));
-  audio.volume = effectsVolume;
+  const battleIntro = id === 'battle';
+  audio.volume = effectsVolume * (battleIntro ? 0.1 : 1);
+  if (battleIntro) audio.playbackRate = 1.5;
   const release = effects[id].duck ? duckRadio() : () => {};
   let finish: () => void = () => {};
-  const done = new Promise<void>((resolve) => { finish = () => { release(); resolve(); }; });
+  let stopTimer: number | undefined;
+  const done = new Promise<void>((resolve) => { finish = () => { if (stopTimer !== undefined) window.clearTimeout(stopTimer); release(); resolve(); }; });
   audio.addEventListener('ended', finish);
   audio.addEventListener('error', finish);
+  if (battleIntro) stopTimer = window.setTimeout(() => { audio.pause(); finish(); }, 2500);
   audio.play().catch(finish); // som bloqueado até o primeiro clique/tecla: segue sem efeito
   return {
     stop: () => { audio.pause(); finish(); },

@@ -13,7 +13,7 @@ import { levelProgress } from '@/lib/battle/experience';
 import { effectiveness, effectivenessLabel } from '@/lib/battle/typechart';
 import { STAGE_KEYS, STAGE_LABELS, emptyStages, type BattleEvent, type BattleState, type Combatant, type StageKey, type StatusKind } from '@/lib/battle/engine';
 import { actionForKey, useBattleKeys, type BattleKeyAction } from '@/lib/battle-keys';
-import { act, battleBag, battleContext, settleBattle, startOpponentBattle, startWildBattle, type BattleRequest } from '@/lib/battle/session';
+import { act, battleBag, battleBallChance, battleContext, settleBattle, startOpponentBattle, startWildBattle, type BattleRequest } from '@/lib/battle/session';
 import type { Opponent } from '@/lib/battle/challenges';
 import { completeOpponent } from '@/lib/battle/challenges';
 import { getTrainerSprite } from '@/lib/trainer-sprites';
@@ -24,6 +24,8 @@ import { formOf, localFormSprite, remoteFormSprite } from '@/lib/training';
 import '@/styles/battle.css';
 import { duckRadio } from '@/lib/radio';
 import { playEffect } from '@/lib/sfx';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { levelCap, wildBadges } from '@/lib/wild';
 
 type Mon = {
   index: number; speciesId: number; name: string; level: number; hp: number; maxHp: number;
@@ -118,10 +120,11 @@ export default function BattleScreen({ encounter, opponent, game, scene, onFinis
   /** Chamado ao fechar a tela de resultado, com a função que grava o resultado no save. */
   onFinish: (settle: (state: GameState) => GameState) => void;
 }) {
+  const playerCap = levelCap(wildBadges(game.progress));
   const initial = useMemo(() => opponent ? startOpponentBattle(game.collection.team, opponent.team, {
     name: opponent.name, title: opponent.title, skill: opponent.skill, lastSwitch: -3,
     bag: opponent.skill > 1 ? [{ item: 'super-potion', name: 'Super Poção', heal: 50, cures: false, qty: 1 }] : [],
-  }, opponent.cap) : startWildBattle(game.collection.team, encounter!, game.collection.companion), []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, opponent.cap, playerCap) : startWildBattle(game.collection.team, encounter!, game.collection.companion, playerCap), []); // eslint-disable-line react-hooks/exhaustive-deps
   const opponentSprite = opponent?.sprite ? getTrainerSprite(opponent.sprite) : undefined;
   const partnerSprite = opponent?.partnerSprite ? getTrainerSprite(opponent.partnerSprite) : undefined;
   const finished = useRef(false);
@@ -142,6 +145,8 @@ export default function BattleScreen({ encounter, opponent, game, scene, onFinis
   const [error, setError] = useState<string | null>(null);
   const ballFx = useRef<BallFxHandle>(null);
   const [fast, setFast] = useState(false);
+  const [bagTab, setBagTab] = useState<'captura' | 'cura'>('captura');
+  const [analysisIndex, setAnalysisIndex] = useState<number | null>(null);
   const keys = useBattleKeys();
 
   const wait = (ms: number) => sleep(ms / speed.current);
@@ -372,9 +377,10 @@ export default function BattleScreen({ encounter, opponent, game, scene, onFinis
                   {settled.outcome.problem && <li className="battle-error">{settled.outcome.problem}</li>}
                   {settled.outcome.money > 0 && <li>Você ganhou ₽ {settled.outcome.money.toLocaleString('pt-BR')}.</li>}
                   {settled.outcome.levels.map((entry) => <li key={entry.name}>{entry.name} chegou ao nível {entry.level}.</li>)}
+                  {settled.outcome.fainted.length > 0 && opponent?.mode !== 'torneios' && game.progress.mode !== 'permadeath' && <li>Desmaiados: {settled.outcome.fainted.join(', ')}. Cure-os no Centro Pokémon ou no mapa por ₽ 500.</li>}
                   {settled.outcome.lost.map((name) => <li key={name} className="battle-error">{name} foi derrotado e perdido para sempre.</li>)}
                   {settled.outcome.gameOver && <li className="battle-error">Todos os seus Pokémon foram derrotados. O save será apagado.</li>}
-                  {battle.result === 'lose' && game.progress.mode !== 'permadeath' && <li>Seus Pokémon foram curados. Tente de novo!</li>}
+                  {opponent?.mode === 'torneios' && <li>Equipe curada para a próxima rodada do torneio.</li>}
                   {battle.result === 'fled' && <li>O Pokémon continua no mapa.</li>}
                 </ul>
               </div>
@@ -421,17 +427,21 @@ export default function BattleScreen({ encounter, opponent, game, scene, onFinis
             )}
             {!ended && menu === 'bag' && (
               <>
-                {items.balls.length === 0 && items.heals.length === 0 && <p className="battle-message" style={{ minHeight: 0 }}>A mochila está vazia.</p>}
-                {items.balls.map((ball) => (
+                <div className="battle-bag-tabs" role="tablist" aria-label="Categorias da mochila">
+                  <button type="button" role="tab" aria-selected={bagTab === 'captura'} onClick={() => setBagTab('captura')}>Poké Bolas · {items.balls.length}</button>
+                  <button type="button" role="tab" aria-selected={bagTab === 'cura'} onClick={() => setBagTab('cura')}>Cura · {items.heals.length}</button>
+                </div>
+                {bagTab === 'captura' && items.balls.map((ball) => (
                   <button key={ball.name} type="button" className="battle-btn" disabled={busy} onClick={() => void run({ kind: 'ball', item: ball.name })}>
-                    <span>{ball.displayName}<br /><small>{getBattleItem(ball.name)?.description}</small></span><b>×{ball.quantity}</b>
+                    <span>{ball.displayName}<br /><small>{getBattleItem(ball.name)?.description}</small><small className="battle-capture-chance">Chance agora: {Math.round(battleBallChance(battle, ball.name, bag) * 1000) / 10}%</small></span><b>×{ball.quantity}</b>
                   </button>
                 ))}
-                {items.heals.map((heal) => (
+                {bagTab === 'cura' && items.heals.map((heal) => (
                   <button key={heal.name} type="button" className="battle-btn" disabled={busy} onClick={() => setMenu({ heal: heal.name })}>
                     <span>{heal.displayName}<br /><small>{getBattleItem(heal.name)?.description}</small></span><b>×{heal.quantity}</b>
                   </button>
                 ))}
+                {((bagTab === 'captura' && items.balls.length === 0) || (bagTab === 'cura' && items.heals.length === 0)) && <p className="battle-message" style={{ minHeight: 0 }}>Nenhum item nesta aba.</p>}
                 <button type="button" className="battle-back" onClick={() => setMenu('main')}>Voltar</button>
               </>
             )}
@@ -441,8 +451,8 @@ export default function BattleScreen({ encounter, opponent, game, scene, onFinis
                 {battle.player.team.map((c, index) => {
                   const picking = typeof menu === 'object' && menu !== null ? menu.heal : null;
                   const disabled = busy || (picking === null && (c.hp <= 0 || index === battle.player.active));
-                  return (
-                    <button key={c.ref || index} type="button" className="battle-btn battle-team-row" disabled={disabled}
+                  return <div key={c.ref || index} className="battle-team-choice">
+                    <button type="button" className="battle-btn battle-team-row" disabled={disabled}
                       onClick={() => void run(picking ? { kind: 'item', item: picking, target: index } : { kind: 'switch', to: index })}>
                       <span className="battle-team-sprite"><img src={spriteOf(c).sheet} alt="" draggable={false} /></span>
                       <span>{c.name} <small>Nv {c.level}</small>
@@ -450,7 +460,8 @@ export default function BattleScreen({ encounter, opponent, game, scene, onFinis
                       </span>
                       <small>{c.hp}/{c.stats.hp}</small>
                     </button>
-                  );
+                    <button type="button" className="battle-btn battle-analyze" disabled={busy} onClick={() => setAnalysisIndex(index)}>Analisar IVs</button>
+                  </div>;
                 })}
                 {battle.phase !== 'replace' && <button type="button" className="battle-back" onClick={() => setMenu(typeof menu === 'object' && menu !== null ? 'bag' : 'main')}>Voltar</button>}
               </>
@@ -458,6 +469,12 @@ export default function BattleScreen({ encounter, opponent, game, scene, onFinis
           </div>
         </div>
       </div>
+      <Dialog open={analysisIndex !== null} onOpenChange={(open) => { if (!open) setAnalysisIndex(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Análise de IVs</DialogTitle><DialogDescription>{analysisIndex === null ? '' : battle.player.team[analysisIndex]?.name}</DialogDescription></DialogHeader>
+          {analysisIndex !== null && <dl className="grid grid-cols-2 gap-2 text-sm">{Object.entries(battle.player.team[analysisIndex]!.ivs).map(([stat, value]) => <div key={stat} className="flex justify-between rounded-md border p-2"><dt>{({ hp: 'HP', atk: 'Ataque', def: 'Defesa', spa: 'Ataque especial', spd: 'Defesa especial', spe: 'Velocidade' } as Record<string, string>)[stat] ?? stat}</dt><dd>{value}/31</dd></div>)}</dl>}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

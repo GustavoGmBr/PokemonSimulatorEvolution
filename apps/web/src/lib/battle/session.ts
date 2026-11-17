@@ -53,7 +53,7 @@ function instanceOf(pokemon: OwnedPokemon, species: Species): BattleInstance {
 }
 
 /** A equipe do jogador como combatentes (fora de batalha todos têm o HP cheio). */
-export function teamCombatants(team: readonly OwnedPokemon[]): Combatant[] {
+export function teamCombatants(team: readonly OwnedPokemon[], playerCap?: number, restore = false): Combatant[] {
   return team.map((pokemon) => {
     const species = battleContext.species(pokemon.species);
     const form = formOf(pokemon);
@@ -63,6 +63,9 @@ export function teamCombatants(team: readonly OwnedPokemon[]): Combatant[] {
       combatant.form = form.name;
       if (form.kind === 'gmax') combatant.hp = combatant.stats.hp = Math.floor(combatant.stats.hp * 1.5);
     }
+    combatant.hp = restore ? combatant.stats.hp : Math.min(combatant.stats.hp, pokemon.hp ?? combatant.stats.hp);
+    combatant.status = restore ? null : pokemon.status ?? null;
+    if (playerCap !== undefined) combatant.levelCap = playerCap;
     combatant.pendingMoves = [...(pokemon.pendingMoves ?? [])];
     return combatant;
   });
@@ -80,19 +83,20 @@ export function wildCombatant(encounter: WildEncounter): Combatant {
 }
 
 /** Começa a luta contra um selvagem; `lead` é o Pokémon da equipe que abre a batalha. */
-export function startWildBattle(team: readonly OwnedPokemon[], encounter: WildEncounter, leadUid?: string | null) {
-  const player = teamCombatants(team);
+export function startWildBattle(team: readonly OwnedPokemon[], encounter: WildEncounter, leadUid?: string | null, playerCap?: number) {
+  const player = teamCombatants(team, playerCap);
   const lead = player.findIndex((c) => c.ref === leadUid);
   if (lead > 0) player.unshift(...player.splice(lead, 1));
   return createBattle({ player, foe: [wildCombatant(encounter)], seed: Math.floor(Math.random() * 2 ** 31), kind: 'wild' });
 }
 
-export function startOpponentBattle(team: readonly OwnedPokemon[], opponents: readonly WildEncounter[], trainer: TrainerInfo, cap?: number) {
+export function startOpponentBattle(team: readonly OwnedPokemon[], opponents: readonly WildEncounter[], trainer: TrainerInfo, opponentCap?: number, playerCap?: number) {
+  const tournament = trainer.tournament !== undefined;
   const player = team.flatMap((pokemon) => {
-    if (cap === undefined || pokemon.level <= cap) return teamCombatants([pokemon]);
+    if (opponentCap === undefined || pokemon.level <= opponentCap) return teamCombatants([pokemon], playerCap, tournament);
     const species = battleContext.species(pokemon.species);
-    const scaled = { ...pokemon, level: cap, exp: expForLevel(species.growthRate, cap) };
-    const combatant = teamCombatants([scaled])[0]!;
+    const scaled = { ...pokemon, level: opponentCap, exp: expForLevel(species.growthRate, opponentCap) };
+    const combatant = teamCombatants([scaled], playerCap, tournament)[0]!;
     return [{ ...combatant, capped: true }];
   });
   return createBattle({ player, foe: opponents.map(wildCombatant), seed: Math.floor(Math.random() * 2 ** 31), kind: 'trainer', trainer });
@@ -115,11 +119,12 @@ function take(bag: Bag, item: string): Bag | null {
   return next;
 }
 
-function captureInput(state: BattleState, ball: string): CaptureInput {
+function captureInput(state: BattleState, ball: string, bag?: Bag): CaptureInput {
   const foe = activeOf(state, 'foe');
   const species = battleContext.species(foe.speciesId);
   return {
     maxHp: foe.stats.hp, currentHp: foe.hp, captureRate: species.captureRate, ball,
+    catchingCharm: (bag?.['catching-charm'] ?? 0) > 0,
     statusMultiplier: foe.status === 'sleep' || foe.status === 'freeze' ? 2 : foe.status ? 1.5 : 1,
     context: {
       types: foe.types, weight: species.weight, height: species.height, firstTurn: state.turn === 0,
@@ -138,6 +143,11 @@ export function battleBag(bag: Bag, kind: 'wild' | 'trainer') {
         ? [{ name, displayName: item.displayName, quantity }] : [];
     });
   return { balls: kind === 'trainer' ? [] : have('captura'), heals: have('cura') };
+}
+
+/** Chance de captura atual, com HP, status, turno e Amuleto de Captura da mochila. */
+export function battleBallChance(state: BattleState, ball: string, bag?: Bag) {
+  return state.kind === 'trainer' ? 0 : captureChance(captureInput(state, ball, bag));
 }
 
 /** Aplica uma ação do jogador. Lança um `Error` com a mensagem se a ação não vale (item sem efeito, sem bola…). */
@@ -164,7 +174,7 @@ export function act(state: BattleState, bag: Bag, request: BattleRequest): Battl
       const left = take(bag, item.name);
       if (!left) throw new Error(`Você não tem ${item.displayName}.`);
       const rng = resumableRng(state.rng);
-      const attempt = attemptCapture(rng, captureInput(state, item.name));
+      const attempt = attemptCapture(rng, captureInput(state, item.name, bag));
       const next: BattleState = { ...state, rng: rng.state };
       const throwText = `Você lançou ${item.displayName}!`;
       if (attempt.caught) {
@@ -217,13 +227,14 @@ export interface BattleOutcome {
   problem: string | null;
   /** Morte permanente: nomes dos Pokémon derrotados que foram apagados. */
   lost: string[];
+  fainted: string[];
   /** Morte permanente: não sobrou nenhum Pokémon, então o save será apagado. */
   gameOver: boolean;
 }
 
 /**
  * Grava no save o que a batalha rendeu: XP, níveis e golpes da equipe, mochila, dinheiro, captura (com Pokédex)
- * e a saída do selvagem do mapa quando ele foi vencido ou capturado. Depois da luta a equipe volta ao HP cheio.
+ * e a saída do selvagem do mapa quando ele foi vencido ou capturado. HP/status são persistidos; torneios restauram a equipe.
  */
 export function settleBattle(game: GameState, battle: BattleState, bag: Bag, encounterId: string | null, ball: string | null, opponentReward = 0, saveExperience = true): { state: GameState; outcome: BattleOutcome } {
   const result = battle.result ?? 'fled';
@@ -239,7 +250,12 @@ export function settleBattle(game: GameState, battle: BattleState, bag: Bag, enc
   };
   let collection = {
     ...game.collection,
-    team: game.collection.team.map(patch),
+    team: game.collection.team.map((pokemon) => {
+      const fought = grown.get(pokemon.uid);
+      if (!fought) return patch(pokemon);
+      const tournament = battle.trainer?.tournament !== undefined;
+      return { ...patch(pokemon), hp: tournament ? fought.stats.hp : fought.hp, status: tournament ? null : fought.status };
+    }),
     boxes: game.collection.boxes.map((box) => ({ ...box, slots: box.slots.map((slot) => (slot ? patch(slot) : slot)) })),
   };
   // Morte permanente: quem ainda estiver desmaiado no fim da luta (mesmo que ela tenha sido uma fuga) é apagado.
@@ -272,7 +288,8 @@ export function settleBattle(game: GameState, battle: BattleState, bag: Bag, enc
   }
   const levels = saveExperience ? battle.player.team.filter((c) => c.ref && !c.capped && c.level > (before.get(c.ref) ?? c.level)).map((c) => ({ name: c.name, level: c.level })) : [];
   const gameOver = permadeath && pokemonCount(state.collection) === 0;
-  return { state, outcome: { result, money, caught, levels, problem, lost: dead.map((c) => c.name), gameOver } };
+  const fainted = battle.player.team.filter((c) => c.ref && c.hp <= 0).map((c) => c.name);
+  return { state, outcome: { result, money, caught, levels, problem, lost: dead.map((c) => c.name), fainted, gameOver } };
 }
 
 // ---------- Captura direta (sem batalha) ----------

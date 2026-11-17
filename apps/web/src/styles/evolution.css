@@ -1,0 +1,10 @@
+.evolution-line { display: grid; gap: .65rem; }
+.evolution-next-row { display: flex; align-items: center; flex-wrap: wrap; gap: .55rem; }
+.evolution-card { display: flex; align-items: center; gap: .6rem; min-width: 12rem; padding: .5rem .7rem; border: 1px solid var(--border); border-radius: .75rem; background: color-mix(in srgb, var(--foreground) 3%, transparent); }
+.evolution-card[data-current="true"] { border-color: var(--primary); }
+.evolution-sprite { width: 3.5rem; height: 3.5rem; object-fit: contain; }
+.evolution-sprite-empty { display: grid; place-items: center; color: var(--muted-foreground); }
+.evolution-card-copy { display: grid; gap: .15rem; }
+.evolution-card-copy small { color: var(--muted-foreground); }
+.evolution-next-arrow { color: var(--muted-foreground); font-size: 1.2rem; }
+.evolution-next-list { display: flex; flex-wrap: wrap; gap: .45rem; }

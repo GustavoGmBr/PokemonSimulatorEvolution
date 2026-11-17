@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState, type MutableRefObject } from 'react';
-import { ArrowUp, Compass, Crosshair, Footprints, Lock, Search, Settings2, Sparkles, Star, Swords, X } from 'lucide-react';
+import { ArrowUp, Compass, Crosshair, Footprints, HeartPulse, Lock, Search, Settings2, Sparkles, Star, Swords, X } from 'lucide-react';
 import { getWildMap, regionNames, wildMaps, type WildMapId } from '@pokesim-evolution/data/wild-maps';
 import { getPokemon } from '@pokesim-evolution/data/pokedex';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { gradeBadge, gradeNames, gradeOf, isSpecial, ivStars, specialMessage, st
 import type { JourneySave } from '@/lib/journey-saves';
 import { averageLevel, companionOf } from '@/lib/pokemon-collection';
 import { getTrainerSprite } from '@/lib/trainer-sprites';
+import { fieldHealCost, healTeamInField } from '@/lib/pokemon-center';
 import {
   availableMaps, canChooseMap, canSpawn, chanceOfStars, clampLevels, defaultSettings, isCleared, levelCap,
   minWildLevel, pendingSpawns, searchMap, settingsOf, shinyChance, spawnNext, unlockedRegions, wildBadges, wildPopulation,
@@ -737,6 +738,10 @@ export default function WildScreen({ save, game, change }: Props) {
               )}
             </div>
             <div className="wild-top-actions">
+              <Button variant="secondary" disabled={progress.money < fieldHealCost || Boolean(fighting)}
+                onClick={() => setMessage(change(healTeamInField) ?? 'Sua equipe foi curada no mapa por ₽ 500.')}>
+                <HeartPulse aria-hidden="true" /> Curar equipe · ₽ 500
+              </Button>
               <Button variant="secondary" onClick={openConfig} aria-keyshortcuts="Control+Backspace Meta+Backspace">
                 <Settings2 aria-hidden="true" /> Configuração <kbd className="game-key">{backLabel}</kbd>
               </Button>

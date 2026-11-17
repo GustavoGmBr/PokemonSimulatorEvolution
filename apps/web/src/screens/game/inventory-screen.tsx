@@ -12,19 +12,19 @@ import { evolutionChoices, formChoices, itemName, trainingItems, usePokemonItem 
 import { pokemonName } from './pokemon-ui';
 import '@/styles/bag.css';
 
-export function TrainingActions({ pokemon, game, change, onlyItem }: {
-  pokemon: OwnedPokemon; game: GameState; change: ChangeGame; onlyItem?: string;
+export function TrainingActions({ pokemon, game, change, onlyItem, mode = 'all', emptyText }: {
+  pokemon: OwnedPokemon; game: GameState; change: ChangeGame; onlyItem?: string; mode?: 'all' | 'training' | 'evolution'; emptyText?: string;
 }) {
   const [message, setMessage] = useState('');
   const bag = game.progress.bag;
   const options = [
-    ...trainingItems.filter((item) => bag[item]).map((item) => ({ label: itemName(item), item, reason: undefined })),
-    ...evolutionChoices(pokemon, Date.now()).map((choice) => ({ ...choice, label: `Evoluir para ${choice.label}` })),
-    ...formChoices(game, pokemon).map((choice) => ({ ...choice, label: `Transformar em ${choice.label}` })),
+    ...(mode !== 'evolution' ? trainingItems.filter((item) => bag[item]).map((item) => ({ label: itemName(item), item, reason: undefined })) : []),
+    ...(mode !== 'training' ? evolutionChoices(pokemon, Date.now()).map((choice) => ({ ...choice, label: `Evoluir para ${choice.label}` })) : []),
+    ...(mode !== 'training' ? formChoices(game, pokemon).map((choice) => ({ ...choice, label: `Transformar em ${choice.label}` })) : []),
   ].filter((choice) => !onlyItem || choice.item === onlyItem);
   return (
     <div className="grid gap-2">
-      {options.length === 0 && <p className="text-sm text-muted-foreground">Nenhum uso disponível para este Pokémon.</p>}
+      {options.length === 0 && <p className="text-sm text-muted-foreground">{emptyText ?? 'Nenhum uso disponível para este Pokémon.'}</p>}
       {options.map((action, index) => {
         const reason = action.reason ?? (action.item && !bag[action.item] ? `Falta ${itemName(action.item)}.` : undefined);
         return <div key={index} className="flex flex-wrap items-center gap-2">
