@@ -20,13 +20,13 @@ export interface Learnable {
   known: boolean;
 }
 
-/** Aumento de preço das TMs em relação ao jogo antigo: +60%. */
-export const tmPriceRaise = 1.6;
+/** Aumento de preço das TMs em relação ao jogo antigo: ×2,4 (+60% e depois +50%). */
+export const tmPriceRaise = 2.4;
 
-/** Preço da TM: a conta do jogo antigo (status ₽ 2.250; dano 25 por ponto de poder, mínimo ₽ 1.500) mais 60%: status ₽ 3.600, dano mínimo ₽ 2.400. */
+/** Preço da TM: a conta do jogo antigo (status ₽ 2.250; dano 25 por ponto de poder, mínimo ₽ 1.500) × 2,4: status ₽ 5.400, dano mínimo ₽ 3.600. */
 export function tmPrice(move: Pick<Move, 'category' | 'power'>): number {
   const base = move.category === 'status' ? 1500 : Math.max(1000, Math.round((move.power * 25) / 100) * 100);
-  // Contas inteiras (×16 ÷10) para não deixar um arredondamento de ponto flutuante somar ₽ 1.
+  // Contas inteiras (×24 ÷10) para não deixar um arredondamento de ponto flutuante somar ₽ 1.
   return Math.ceil((Math.ceil(base * 1.5) * Math.round(tmPriceRaise * 10)) / 10);
 }
 

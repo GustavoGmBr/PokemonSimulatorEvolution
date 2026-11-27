@@ -11,6 +11,7 @@ import {
   tournamentOpponent, type ChallengeMode, type Opponent, type Tier,
 } from '@/lib/battle/challenges';
 import { speciesName } from '@/lib/battle/session';
+import { earn } from '@/lib/rewards';
 import { GameSprite } from './pokedex-media';
 import '@/styles/pokedex.css';
 
@@ -80,7 +81,7 @@ export default function ChallengesScreen({ mode, game, change }: { mode: Challen
             <article className="game-panel" key={tier.id}>
               <h2 className="game-section-title">{tier.name}</h2>
               <p className="text-sm text-muted-foreground">
-                8 rodadas · {'cap' in tier ? `nível máximo ${tier.cap}` : 'níveis acompanham a média da sua equipe'} · prêmio de {money(tier.prize)}
+                8 rodadas · {'cap' in tier ? `nível máximo ${tier.cap}` : 'níveis acompanham a média da sua equipe'} · prêmio de {money(earn(tier.prize))}
               </p>
               <Button onClick={() => enter(tier)} disabled={game.progress.money < tier.fee}>Inscrever-se · {money(tier.fee)}</Button>
             </article>

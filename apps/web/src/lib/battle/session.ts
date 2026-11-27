@@ -18,6 +18,7 @@ import { levelUpMoves, toMoveSlot, type BattleInstance } from './pokemon';
 import { resumableRng } from './rng';
 import { statsOf } from './pokemon';
 import { recordMission } from '../missions';
+import { earn } from '../rewards';
 import { formOf } from '../training';
 import type { MoveSlot, Species } from './types';
 
@@ -31,8 +32,8 @@ export const battleContext: BattleContext = {
   chart: typeChart,
 };
 
-/** Dinheiro por vencer um selvagem: metade de 10 × o nível dele. */
-export const wildReward = (level: number) => Math.floor(level * 10 * 0.5);
+/** Dinheiro por vencer um selvagem: metade de 10 × o nível dele, mais o bônus de 60%. */
+export const wildReward = (level: number) => earn(Math.floor(level * 10 * 0.5));
 
 export function speciesName(id: number) {
   return getPokemon(id)?.displayName ?? `Espécie ${id}`;

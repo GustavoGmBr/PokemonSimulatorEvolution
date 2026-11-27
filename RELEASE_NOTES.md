@@ -1,3 +1,8 @@
+## Pokémon Simulator Evolution 1.4.5
+
+- **Mais dinheiro nas batalhas:** +60% em tudo o que se ganha lutando: selvagens, treinadores, ginásios, chefes e o prêmio final dos torneios. Os valores mostrados nas telas já incluem o bônus.
+- **TMs mais caras:** +50% no preço (golpes de status passam de ₽ 3.600 para ₽ 5.400; golpes de dano, de ₽ 2.400 no mínimo para ₽ 3.600).
+
 ## Pokémon Simulator Evolution 1.4.4
 
 - **Cura fora dos selvagens:** só as lutas contra Pokémon selvagens deixam HP baixo e desmaiados. Ao fim de qualquer outra batalha (treinadores, ginásios, torneios, chefes) a equipe volta curada, e já entra com HP cheio.

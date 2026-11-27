@@ -10,6 +10,7 @@ import type { TrainerInfo } from './engine';
 import { resumableRng } from './rng';
 import { speciesName } from './session';
 import { recordMission } from '../missions';
+import { earn } from '../rewards';
 
 type Mode = 'treinadores' | 'ginasios' | 'torneios' | 'chefes';
 export type ChallengeMode = Mode;
@@ -81,7 +82,7 @@ export function randomTrainers(average?: number): Opponent[] {
     const level = average === undefined ? undefined : scaledLevel(average, offset);
     return {
       id, mode: 'treinadores' as const, ...npc(Math.random),
-      team: randomTeam(id, size, level ?? min, level ?? max, Math.random), skill: skill as TrainerInfo['skill'], reward, note,
+      team: randomTeam(id, size, level ?? min, level ?? max, Math.random), skill: skill as TrainerInfo['skill'], reward: earn(reward), note,
       ...(level === undefined ? {} : { levelOffset: offset }),
     };
   });
@@ -121,7 +122,7 @@ export function gymOpponents(circuit: Circuit, defeated: readonly string[], aver
       partnerSprite: entry.slug === 'hoenn-tate-liza' ? 'player_leader_liza' : undefined,
       title: gym ? circuit.gymLabel : champion ? 'Campeonato regional' : circuit.eliteLabel,
       team: entry.team.filter((id) => getBattleSpecies(id)).map((id, index) => encounter(`${entry.slug}:${index}`, id, level, rand)),
-      skill: champion ? 3 : 2, reward: entry.team.length * level * 10,
+      skill: champion ? 3 : 2, reward: earn(entry.team.length * level * 10),
       cap: average === undefined ? entry.level : undefined, circuit: circuit.id, gym, champion,
     };
   });
@@ -157,7 +158,7 @@ export function tournamentOpponent(run: NonNullable<GameState['progress']['chall
   if (!tier) return null;
   const rand = seeded(run.seed + 497 * run.round), id = `${run.tier}:${run.seed}:${run.round}`;
   const base = { id, mode: 'torneios' as const, ...npc(rand), note: `Rodada ${run.round} de ${tournamentRounds}`,
-    skill: (run.round > 5 ? 3 : 2) as TrainerInfo['skill'], reward: run.round === tournamentRounds ? tier.prize : 0, tournament: run };
+    skill: (run.round > 5 ? 3 : 2) as TrainerInfo['skill'], reward: run.round === tournamentRounds ? earn(tier.prize) : 0, tournament: run };
   if ('offset' in tier) {
     // Os Pokémon saem do grupo de nível 100 (assim a escolha não muda quando a equipe sobe de nível); só o nível acompanha a equipe.
     const level = scaledLevel(average ?? 5, tier.offset);
@@ -177,7 +178,7 @@ export function bossesOf(cycle: number, average?: number): Opponent[] {
     const pokemon = { ...drawn, level };
     return { id, mode: 'chefes' as const, name: speciesName(pokemon.species), title: 'Chefe',
       note: average === undefined ? `${stars} ★ · equipe no nível ${level} ou superior` : `${stars} ★ · nível ${level} (acompanha a sua equipe)`,
-      team: [pokemon], skill: 3 as TrainerInfo['skill'], reward: stars * level * 20, cycle };
+      team: [pokemon], skill: 3 as TrainerInfo['skill'], reward: earn(stars * level * 20), cycle };
   });
 }
 
