@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
 import type { ArenaId } from '@pokesim-evolution/data/arenas';
 import { arenaLayout } from '@pokesim-evolution/data/arenas';
 import { battleMoves, getBattleItem } from '@pokesim-evolution/data/battle-data';
@@ -26,6 +26,7 @@ import { duckRadio } from '@/lib/radio';
 import { playEffect } from '@/lib/sfx';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { levelCap, wildBadges } from '@/lib/wild';
+import { canFight, faintedTeamMessage } from '@/lib/pokemon-center';
 
 type Mon = {
   index: number; speciesId: number; name: string; level: number; hp: number; maxHp: number;
@@ -110,7 +111,7 @@ function Hud({ side, mon, pop }: { side: 'jogador' | 'adversario'; mon: Mon; pop
   );
 }
 
-export default function BattleScreen({ encounter, opponent, game, scene, onFinish }: ({
+function BattleSession({ encounter, opponent, game, scene, onFinish }: ({
   encounter: WildEncounter; opponent?: never;
 } | {
   opponent: Opponent; encounter?: never;
@@ -377,10 +378,10 @@ export default function BattleScreen({ encounter, opponent, game, scene, onFinis
                   {settled.outcome.problem && <li className="battle-error">{settled.outcome.problem}</li>}
                   {settled.outcome.money > 0 && <li>Você ganhou ₽ {settled.outcome.money.toLocaleString('pt-BR')}.</li>}
                   {settled.outcome.levels.map((entry) => <li key={entry.name}>{entry.name} chegou ao nível {entry.level}.</li>)}
-                  {settled.outcome.fainted.length > 0 && opponent?.mode !== 'torneios' && game.progress.mode !== 'permadeath' && <li>Desmaiados: {settled.outcome.fainted.join(', ')}. Cure-os no Centro Pokémon ou no mapa por ₽ 500.</li>}
+                  {settled.outcome.fainted.length > 0 && battle.kind === 'wild' && game.progress.mode !== 'permadeath' && <li>Desmaiados: {settled.outcome.fainted.join(', ')}. Cure-os no Centro Pokémon ou no mapa por ₽ 500.</li>}
                   {settled.outcome.lost.map((name) => <li key={name} className="battle-error">{name} foi derrotado e perdido para sempre.</li>)}
                   {settled.outcome.gameOver && <li className="battle-error">Todos os seus Pokémon foram derrotados. O save será apagado.</li>}
-                  {opponent?.mode === 'torneios' && <li>Equipe curada para a próxima rodada do torneio.</li>}
+                  {battle.kind === 'trainer' && game.progress.mode !== 'permadeath' && <li>Sua equipe foi curada.</li>}
                   {battle.result === 'fled' && <li>O Pokémon continua no mapa.</li>}
                 </ul>
               </div>
@@ -477,4 +478,20 @@ export default function BattleScreen({ encounter, opponent, game, scene, onFinis
       </Dialog>
     </div>
   );
+}
+
+/** Sem ninguém de pé não há como abrir uma luta contra selvagens: avisa em vez de quebrar a tela. */
+export default function BattleScreen(props: ComponentProps<typeof BattleSession>) {
+  if (!props.opponent && !canFight(props.game.collection.team)) {
+    return (
+      <div className="battle-overlay" role="alertdialog" aria-label="Equipe desmaiada">
+        <div className="battle-result">
+          <h2>Equipe desmaiada</h2>
+          <p>{faintedTeamMessage}</p>
+          <button type="button" className="battle-btn" onClick={() => props.onFinish((state) => state)}>Voltar</button>
+        </div>
+      </div>
+    );
+  }
+  return <BattleSession {...props} />;
 }

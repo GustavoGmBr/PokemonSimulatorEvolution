@@ -91,12 +91,12 @@ export function startWildBattle(team: readonly OwnedPokemon[], encounter: WildEn
 }
 
 export function startOpponentBattle(team: readonly OwnedPokemon[], opponents: readonly WildEncounter[], trainer: TrainerInfo, opponentCap?: number, playerCap?: number) {
-  const tournament = trainer.tournament !== undefined;
+  // Fora das lutas contra selvagens (treinadores, ginásios, torneios…) a equipe entra e sai com HP cheio e sem status.
   const player = team.flatMap((pokemon) => {
-    if (opponentCap === undefined || pokemon.level <= opponentCap) return teamCombatants([pokemon], playerCap, tournament);
+    if (opponentCap === undefined || pokemon.level <= opponentCap) return teamCombatants([pokemon], playerCap, true);
     const species = battleContext.species(pokemon.species);
     const scaled = { ...pokemon, level: opponentCap, exp: expForLevel(species.growthRate, opponentCap) };
-    const combatant = teamCombatants([scaled], playerCap, tournament)[0]!;
+    const combatant = teamCombatants([scaled], playerCap, true)[0]!;
     return [{ ...combatant, capped: true }];
   });
   return createBattle({ player, foe: opponents.map(wildCombatant), seed: Math.floor(Math.random() * 2 ** 31), kind: 'trainer', trainer });
@@ -234,7 +234,7 @@ export interface BattleOutcome {
 
 /**
  * Grava no save o que a batalha rendeu: XP, níveis e golpes da equipe, mochila, dinheiro, captura (com Pokédex)
- * e a saída do selvagem do mapa quando ele foi vencido ou capturado. HP/status são persistidos; torneios restauram a equipe.
+ * e a saída do selvagem do mapa quando ele foi vencido ou capturado. HP/status só são persistidos nas lutas contra selvagens; as demais batalhas curam a equipe.
  */
 export function settleBattle(game: GameState, battle: BattleState, bag: Bag, encounterId: string | null, ball: string | null, opponentReward = 0, saveExperience = true): { state: GameState; outcome: BattleOutcome } {
   const result = battle.result ?? 'fled';
@@ -253,8 +253,9 @@ export function settleBattle(game: GameState, battle: BattleState, bag: Bag, enc
     team: game.collection.team.map((pokemon) => {
       const fought = grown.get(pokemon.uid);
       if (!fought) return patch(pokemon);
-      const tournament = battle.trainer?.tournament !== undefined;
-      return { ...patch(pokemon), hp: tournament ? fought.stats.hp : fought.hp, status: tournament ? null : fought.status };
+      // Só a luta contra selvagens deixa marcas: depois de qualquer outra batalha a equipe volta curada.
+      if (battle.kind === 'trainer') { const { hp: _hp, ...healed } = patch(pokemon); return { ...healed, status: null }; }
+      return { ...patch(pokemon), hp: fought.hp, status: fought.status };
     }),
     boxes: game.collection.boxes.map((box) => ({ ...box, slots: box.slots.map((slot) => (slot ? patch(slot) : slot)) })),
   };

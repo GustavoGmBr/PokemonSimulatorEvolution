@@ -1,7 +1,7 @@
 // Pokémon do jogador: equipe (até 6) e caixas do PC (30 vagas cada, até 100 caixas).
 // Todas as operações são puras: devolvem uma nova coleção ou uma mensagem de erro (string).
 
-import { perfectIvs, readIvs, rollIvs, type Ivs } from './ivs';
+import { perfectIvs, readIvs, rollIvs, type Ivs } from './ivs.ts';
 
 export const teamSize = 6;
 export const boxSize = 30;
@@ -200,6 +200,24 @@ export function companionOf(collection: Collection): OwnedPokemon {
 }
 
 // ---------- Operações ----------
+
+/** Quem abre uma luta contra selvagens: o companheiro (se estiver de pé) ou o primeiro da ordem que ainda puder lutar. */
+export function leadOf(collection: Collection): OwnedPokemon | null {
+  const order = [...collection.team];
+  const companion = order.findIndex((pokemon) => pokemon.uid === collection.companion);
+  if (companion > 0) order.unshift(...order.splice(companion, 1));
+  return order.find((pokemon) => pokemon.hp === undefined || pokemon.hp > 0) ?? null;
+}
+
+/** Sobe (`-1`) ou desce (`1`) um Pokémon na ordem da equipe. Ao chegar à primeira vaga ele também vira o companheiro. */
+export function shiftTeamMember(collection: Collection, uid: string, delta: -1 | 1): Collection {
+  const from = collection.team.findIndex((pokemon) => pokemon.uid === uid);
+  const to = from + delta;
+  if (from < 0 || to < 0 || to >= collection.team.length) return collection;
+  const team = [...collection.team];
+  [team[from], team[to]] = [team[to]!, team[from]!];
+  return { ...collection, team, ...(to === 0 ? { companion: uid } : {}) };
+}
 
 /** Define o companheiro entre os Pokémon da equipe. */
 export function setCompanion(collection: Collection, uid: string): Result {

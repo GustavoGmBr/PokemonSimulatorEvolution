@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState, type MutableRefObject } from 'react';
-import { ArrowUp, Compass, Crosshair, Footprints, HeartPulse, Lock, Search, Settings2, Sparkles, Star, Swords, X } from 'lucide-react';
+import { ArrowUp, Compass, Crosshair, Footprints, HeartPulse, Lock, Search, Settings2, Sparkles, Star, Swords, Users, X } from 'lucide-react';
 import { getWildMap, regionNames, wildMaps, type WildMapId } from '@pokesim-evolution/data/wild-maps';
 import { getPokemon } from '@pokesim-evolution/data/pokedex';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import { gradeBadge, gradeNames, gradeOf, isSpecial, ivStars, specialMessage, st
 import type { JourneySave } from '@/lib/journey-saves';
 import { averageLevel, companionOf } from '@/lib/pokemon-collection';
 import { getTrainerSprite } from '@/lib/trainer-sprites';
-import { fieldHealCost, healTeamInField } from '@/lib/pokemon-center';
+import { canFight, faintedTeamMessage, fieldHealCost, healTeamInField } from '@/lib/pokemon-center';
 import {
   availableMaps, canChooseMap, canSpawn, chanceOfStars, clampLevels, defaultSettings, isCleared, levelCap,
   minWildLevel, pendingSpawns, searchMap, settingsOf, shinyChance, spawnNext, unlockedRegions, wildBadges, wildPopulation,
@@ -26,6 +26,7 @@ import { spriteSheetUrl, TypeBadge } from './pokedex-media';
 import { BallFx, type BallFxHandle } from './ball-fx';
 // A batalha carrega junto com os dados de golpes e espécies só quando a primeira luta começa.
 const BattleScreen = lazy(() => import('./battle-screen'));
+const WildTeamDialog = lazy(() => import('./wild-team-dialog'));
 const DirectCaptureDialog = lazy(() => import('./direct-capture-dialog'));
 import '@/styles/iv.css';
 import '@/styles/wild.css';
@@ -520,6 +521,7 @@ export default function WildScreen({ save, game, change }: Props) {
   const [view, setView] = useState<'config' | 'map'>(wild ? 'map' : 'config');
   const [settings, setSettings] = useState<WildSettings>(() => wild ? settingsOf(wild, badges) : defaultSettings(badges));
   const [battleId, setBattleId] = useState<string | null>(null);
+  const [teamOpen, setTeamOpen] = useState(false);
   /** Selvagem da captura direta em andamento (guardado inteiro: ele sai do mapa assim que a bola é lançada). */
   const [catching, setCatching] = useState<{ encounter: WildEncounter; phase: 'choose' | 'throwing' } | null>(null);
   const ballFx = useRef<BallFxHandle>(null);
@@ -532,6 +534,11 @@ export default function WildScreen({ save, game, change }: Props) {
   const timers = useRef<number[]>([]);
   const fighting = wild?.encounters.find((encounter) => encounter.id === battleId) ?? null;
   const near = wild?.encounters.find((encounter) => encounter.id === nearId) ?? null;
+  const startBattle = (id: string) => {
+    if (!canFight(game.collection.team)) { setMessage(faintedTeamMessage); return; }
+    setMessage(null);
+    setBattleId(id);
+  };
   const map = wild ? getWildMap(wild.map) : null;
   const cleared = wild ? isCleared(wild, population) : false;
   const specials = wild?.encounters.filter(isSpecial) ?? [];
@@ -700,8 +707,8 @@ export default function WildScreen({ save, game, change }: Props) {
     <div className="wild-stage" data-view={showingMap ? 'map' : 'config'}>
       {showingMap && wild && map ? (
         <>
-          <WildWorld key={wild.id} board={wild} population={population} paused={catching !== null || confirmSearch || fighting !== null} arrows={arrows} onSpawn={spawn} onNear={setNearId}
-            onInteract={setBattleId} onCapture={(id) => startCatch(wild.encounters.find((encounter) => encounter.id === id))} trainerUrl={trainer?.url ?? null} trainerRunUrl={trainerRun?.url ?? null}
+          <WildWorld key={wild.id} board={wild} population={population} paused={catching !== null || confirmSearch || teamOpen || fighting !== null} arrows={arrows} onSpawn={spawn} onNear={setNearId}
+            onInteract={startBattle} onCapture={(id) => startCatch(wild.encounters.find((encounter) => encounter.id === id))} trainerUrl={trainer?.url ?? null} trainerRunUrl={trainerRun?.url ?? null}
             companion={buddyEntry?.sprite ? {
               uid: buddy.uid, sprite: buddyEntry.sprite, shiny: buddy.shiny, name: buddy.nickname ?? buddyEntry.displayName,
             } : null} />
@@ -738,6 +745,9 @@ export default function WildScreen({ save, game, change }: Props) {
               )}
             </div>
             <div className="wild-top-actions">
+              <Button variant="secondary" disabled={Boolean(fighting)} onClick={() => setTeamOpen(true)}>
+                <Users aria-hidden="true" /> Equipe
+              </Button>
               <Button variant="secondary" disabled={progress.money < fieldHealCost || Boolean(fighting)}
                 onClick={() => setMessage(change(healTeamInField) ?? 'Sua equipe foi curada no mapa por ₽ 500.')}>
                 <HeartPulse aria-hidden="true" /> Curar equipe · ₽ 500
@@ -771,7 +781,7 @@ export default function WildScreen({ save, game, change }: Props) {
             </p>
             {near && !catching && !fighting && (
               <div className="wild-prompt-actions">
-                <Button className="wild-prompt-button" onClick={() => setBattleId(near.id)}>
+                <Button className="wild-prompt-button" onClick={() => startBattle(near.id)}>
                   <Swords aria-hidden="true" /> Enfrentar {encounterName(near)} · Nv {near.level} <kbd className="game-key">{explore.interact}</kbd>
                 </Button>
                 <Button variant="secondary" className="wild-prompt-button" onClick={() => startCatch(near)}>
@@ -812,6 +822,12 @@ export default function WildScreen({ save, game, change }: Props) {
               change(settle);
               setBattleId(null);
             }} />
+        </Suspense>
+      )}
+
+      {teamOpen && (
+        <Suspense fallback={null}>
+          <WildTeamDialog game={game} change={change} open={teamOpen} onOpenChange={setTeamOpen} />
         </Suspense>
       )}
 

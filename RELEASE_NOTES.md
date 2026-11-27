@@ -1,3 +1,9 @@
+## Pokémon Simulator Evolution 1.4.4
+
+- **Cura fora dos selvagens:** só as lutas contra Pokémon selvagens deixam HP baixo e desmaiados. Ao fim de qualquer outra batalha (treinadores, ginásios, torneios, chefes) a equipe volta curada, e já entra com HP cheio.
+- **Equipe nos selvagens:** o botão **Equipe** mostra o HP e o status de cada Pokémon e permite subir e descer na ordem. Quem fica em cima abre a luta; se ele estiver desmaiado, abre o próximo que puder lutar.
+- **Correção:** entrar numa luta contra selvagens com a equipe toda desmaiada quebrava a tela. Agora aparece o aviso para curar a equipe no Centro Pokémon ou no mapa. Com só alguns desmaiados, a luta já abria com o primeiro que pode lutar.
+
 ## Pokémon Simulator Evolution 1.4.3
 
 - **Chance de captura:** percentual destacado em uma etiqueta de alto contraste, separado do nome e da descrição do item.

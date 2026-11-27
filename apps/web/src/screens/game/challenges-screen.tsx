@@ -87,7 +87,7 @@ export default function ChallengesScreen({ mode, game, change }: { mode: Challen
           ))}
         </div>
       )}
-      {tournament && mode === 'torneios' && <p className="text-sm text-muted-foreground">A equipe começa cada rodada com HP cheio. O prêmio é entregue ao vencer a final.</p>}
+      {tournament && mode === 'torneios' && <p className="text-sm text-muted-foreground">A equipe começa cada rodada com HP cheio e é curada ao fim de cada luta. O prêmio é entregue ao vencer a final.</p>}
 
       {entries.length > 0 && (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
