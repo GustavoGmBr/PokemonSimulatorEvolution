@@ -74,7 +74,7 @@ export default function ChallengesScreen({ mode, game, change }: { mode: Challen
           {entries.length === 0 && <p className="text-sm text-muted-foreground">Vença o Campeão do circuito anterior para liberar este circuito.</p>}
         </div>
       )}
-      {mode === 'chefes' && <p className="text-sm text-muted-foreground">Próxima rotação em {Math.ceil(((cycle + 1) * 600_000 - now) / 1000)} s. Cada chefe derrotado rende uma Grande Bola e dinheiro.</p>}
+      {mode === 'chefes' && <p className="text-sm text-muted-foreground">Próxima rotação em {Math.ceil(((cycle + 1) * 600_000 - now) / 1000)} s. Cada chefe derrotado rende uma Grande Bola e dinheiro, e dá para tentar capturá-lo enfraquecido ao vencer.</p>}
       {mode === 'torneios' && !tournament && (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {availableTiers(postGame).map((tier) => (

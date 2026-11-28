@@ -297,13 +297,13 @@ export function settleBattle(game: GameState, battle: BattleState, bag: Bag, enc
 // ---------- Captura direta (sem batalha) ----------
 
 /** Dados da captura de um selvagem sem lutar: HP cheio, sem status e a primeira bola do encontro. */
-function directInput(encounter: WildEncounter, ball: string, team: readonly OwnedPokemon[]): CaptureInput {
+function directInput(encounter: WildEncounter, ball: string, team: readonly OwnedPokemon[], weakened = false): CaptureInput {
   const species = battleContext.species(encounter.species);
   const lead = team[0] ? battleContext.species(team[0].species) : null;
   const maxHp = statsOf({ level: encounter.level, ivs: encounter.ivs, shiny: encounter.shiny }, species).hp;
   return {
-    maxHp, currentHp: maxHp, captureRate: species.captureRate, ball, statusMultiplier: 1,
-    context: { types: species.types, weight: species.weight, height: species.height, firstTurn: true, leadTypes: lead?.types ?? [], asleep: false },
+    maxHp, currentHp: weakened ? 1 : maxHp, captureRate: species.captureRate, ball, statusMultiplier: 1,
+    context: { types: species.types, weight: species.weight, height: species.height, firstTurn: !weakened, leadTypes: lead?.types ?? [], asleep: false },
   };
 }
 
@@ -337,4 +337,21 @@ export function throwDirect(state: GameState, encounter: WildEncounter, ball: st
     return { ...next, wild: next.wild ? removeEncounter(next.wild, encounter.id) : null };
   };
   return { caught: attempt.caught, shakes: attempt.shakes, apply };
+}
+
+// ---------- Captura de chefes derrotados ----------
+
+/** Chance (0 a 1) de capturar um chefe recém-derrotado: ele fica com 1 de HP, sem status. */
+export function bossCaptureOdds(boss: WildEncounter, ball: string, team: readonly OwnedPokemon[]): number {
+  return captureChance(directInput(boss, ball, team, true));
+}
+
+/** Sorteia o arremesso de uma bola no chefe derrotado. A bola só é gasta (e o chefe só entra na coleção) quando o resultado é gravado. */
+export function throwAtBoss(boss: WildEncounter, ball: string, team: readonly OwnedPokemon[], rng: { int(max: number): number } = { int: (max) => Math.floor(Math.random() * max) }) {
+  return attemptCapture(rng, directInput(boss, ball, team, true));
+}
+
+/** Guarda o chefe capturado no time ou no PC. Devolve a mensagem de erro se não houver lugar. */
+export function keepBoss(state: GameState, boss: WildEncounter, ball: string): GameState | string {
+  return capture(state, createPokemon(boss.species, { level: boss.level, shiny: boss.shiny, ivs: boss.ivs, ball }));
 }

@@ -13,7 +13,7 @@ import { levelProgress } from '@/lib/battle/experience';
 import { effectiveness, effectivenessLabel } from '@/lib/battle/typechart';
 import { STAGE_KEYS, STAGE_LABELS, emptyStages, type BattleEvent, type BattleState, type Combatant, type StageKey, type StatusKind } from '@/lib/battle/engine';
 import { actionForKey, useBattleKeys, type BattleKeyAction } from '@/lib/battle-keys';
-import { act, battleBag, battleBallChance, battleContext, settleBattle, startOpponentBattle, startWildBattle, type BattleRequest } from '@/lib/battle/session';
+import { act, battleBag, battleBallChance, battleContext, bossCaptureOdds, keepBoss, settleBattle, startOpponentBattle, startWildBattle, throwAtBoss, type BattleRequest } from '@/lib/battle/session';
 import type { Opponent } from '@/lib/battle/challenges';
 import { completeOpponent } from '@/lib/battle/challenges';
 import { getTrainerSprite } from '@/lib/trainer-sprites';
@@ -148,6 +148,10 @@ function BattleSession({ encounter, opponent, game, scene, onFinish }: ({
   const [fast, setFast] = useState(false);
   const [bagTab, setBagTab] = useState<'captura' | 'cura'>('captura');
   const [analysisIndex, setAnalysisIndex] = useState<number | null>(null);
+  // Chefe derrotado: dá para tentar capturá-lo, enfraquecido, antes de fechar o resultado.
+  const [bossBusy, setBossBusy] = useState(false);
+  const [bossCaught, setBossCaught] = useState<string | null>(null);
+  const [bossMisses, setBossMisses] = useState(0);
   const keys = useBattleKeys();
 
   const wait = (ms: number) => sleep(ms / speed.current);
@@ -166,6 +170,29 @@ function BattleSession({ encounter, opponent, game, scene, onFinish }: ({
       onRelease: () => setDisplay((d) => ({ ...d, foeState: 'idle' })),
       onCaught: () => { playEffect('catching'); },
     });
+  }
+
+  async function throwAtDefeatedBoss(ball: string) {
+    if (!opponent || bossBusy || bossCaught) return;
+    const boss = opponent.team[0]!;
+    const attempt = throwAtBoss(boss, ball, game.collection.team);
+    const me = arenaLayout.spots.jogador;
+    const them = arenaLayout.spots.adversario;
+    setBossBusy(true);
+    setBag((current) => ({ ...current, [ball]: Math.max(0, (current[ball] ?? 0) - 1) }));
+    setDisplay((d) => ({ ...d, foeState: 'idle' }));
+    await ballFx.current?.play({
+      ball, unit: '%', arc: 24, caught: attempt.caught, shakes: attempt.shakes, speed: speed.current,
+      from: { x: me.x * 100 + 5, y: (me.y - 0.14) * 100 },
+      to: { x: them.x * 100, y: (them.y - 0.11) * 100 },
+      ground: { x: them.x * 100, y: (them.y - 0.04) * 100 },
+      onOpen: () => setDisplay((d) => ({ ...d, foeState: 'captured' })),
+      onRelease: () => setDisplay((d) => ({ ...d, foeState: 'idle' })),
+      onCaught: () => { playEffect('catching'); },
+    });
+    if (attempt.caught) setBossCaught(ball);
+    else { setBossMisses((count) => count + 1); setDisplay((d) => ({ ...d, foeState: 'fainted' })); }
+    setBossBusy(false);
   }
 
   async function play(before: BattleState, events: BattleEvent[]) {
@@ -296,16 +323,19 @@ function BattleSession({ encounter, opponent, game, scene, onFinish }: ({
   const foe = battle.foe.team[battle.foe.active]!;
   const items = battleBag(bag, battle.kind);
   const ended = battle.phase === 'ended' && !busy;
+  const bossBalls = opponent?.mode === 'chefes' && battle.result === 'win' && !bossCaught ? battleBag(bag, 'wild').balls : [];
   const settle = (state: GameState) => settleBattle(state, battle, bag, encounter?.id ?? null,
     ballUsed.current, opponent?.reward, opponent?.mode !== 'torneios');
   const settled = useMemo(() => ended ? settle(game) : null, [ended]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const finish = () => {
-    if (finished.current) return;
+    if (finished.current || bossBusy) return;
     finished.current = true;
     onFinish((state) => {
       const result = settle(state).state;
-      return opponent ? completeOpponent(result, opponent, battle.result === 'win') : result;
+      const completed = opponent ? completeOpponent(result, opponent, battle.result === 'win') : result;
+      const kept = opponent && bossCaught ? keepBoss(completed, opponent.team[0]!, bossCaught) : completed;
+      return typeof kept === 'string' ? completed : kept;
     });
   };
 
@@ -383,6 +413,9 @@ function BattleSession({ encounter, opponent, game, scene, onFinish }: ({
                   {settled.outcome.gameOver && <li className="battle-error">Todos os seus Pokémon foram derrotados. O save será apagado.</li>}
                   {battle.kind === 'trainer' && game.progress.mode !== 'permadeath' && <li>Sua equipe foi curada.</li>}
                   {battle.result === 'fled' && <li>O Pokémon continua no mapa.</li>}
+                  {opponent?.mode === 'chefes' && battle.result === 'win' && !bossCaught && bossMisses === 0 && bossBalls.length > 0 && <li>{foe.name} está enfraquecido: dá para tentar capturá-lo antes de continuar.</li>}
+                  {bossMisses > 0 && !bossCaught && <li>{foe.name} escapou {bossMisses === 1 ? 'da bola' : `de ${bossMisses} bolas`}.</li>}
+                  {bossCaught && <li className="font-bold">{foe.name} foi capturado e vai para o seu time ou PC!</li>}
                 </ul>
               </div>
             ) : <TypedText text={message} />}
@@ -390,8 +423,16 @@ function BattleSession({ encounter, opponent, game, scene, onFinish }: ({
 
           <div className="battle-menu">
             {error && <p className="battle-error" role="alert">{error}</p>}
+            {ended && settled && bossBalls.length > 0 && <div className="battle-menu-grid">{bossBalls.map((ball) => {
+              const odds = Math.round(bossCaptureOdds(opponent!.team[0]!, ball.name, game.collection.team) * 1000) / 10;
+              return (
+                <button key={ball.name} type="button" className="battle-btn" disabled={bossBusy} onClick={() => void throwAtDefeatedBoss(ball.name)}>
+                  <span className="battle-ball-copy">{ball.displayName}<strong className="battle-capture-chance" aria-label={`Chance de captura ${odds}%`}>Captura: {odds}%</strong></span><b>×{ball.quantity}</b>
+                </button>
+              );
+            })}</div>}
             {ended && settled && (
-              <button type="button" className="battle-btn" data-primary="true"
+              <button type="button" className="battle-btn" data-primary="true" disabled={bossBusy}
                 onClick={finish}>
                 Continuar <kbd className="battle-key">Enter</kbd>
               </button>

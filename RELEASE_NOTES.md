@@ -1,3 +1,7 @@
+## Pokémon Simulator Evolution 1.4.6
+
+- **Capturar chefes:** ao derrotar um chefe, o resultado mostra as suas Poké Bolas com a chance de cada uma. O chefe fica enfraquecido (1 de HP), então comuns são fáceis e lendários continuam difíceis; a Master Bola sempre captura. Dá para arremessar quantas bolas quiser; ao escapar, ele sai da bola e você pode tentar de novo. "Continuar" deixa o chefe ir. A Grande Bola de recompensa só chega depois de fechar o resultado.
+
 ## Pokémon Simulator Evolution 1.4.5
 
 - **Mais dinheiro nas batalhas:** +60% em tudo o que se ganha lutando: selvagens, treinadores, ginásios, chefes e o prêmio final dos torneios. Os valores mostrados nas telas já incluem o bônus.
