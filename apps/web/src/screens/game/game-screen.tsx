@@ -1,7 +1,7 @@
 import { useControlsVersion } from '@/lib/controls';
 import { lazy, Suspense, useEffect, useEffectEvent, useRef, useState, type ReactNode } from 'react';
 import { defaultFilter } from 'cmdk';
-import { ChevronDown, ChevronRight, House, IdCard, Keyboard, LogOut, Maximize, Minimize, PanelLeft, X } from 'lucide-react';
+import { ChevronDown, ChevronRight, House, IdCard, Keyboard, LogOut, Maximize, Minimize, PanelLeft, Swords, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandShortcut } from '@/components/ui/command';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/sidebar';
 import { TrainerSpritePreview } from '@/components/sprite-preview';
 import { useMotionPreference } from '@/hooks/use-motion-preference';
+import { getSettings, updateSettings } from '@/lib/settings';
 import { restartJourney, savePlaySeconds, type JourneySave, type Starter } from '@/lib/journey-saves';
 import { getTrainerSprite } from '@/lib/trainer-sprites';
 import {
@@ -268,6 +269,11 @@ function GameLayout({ save, area, pokemonId, onNavigate, onExit, onChangeSprite,
         setReduceMotion((previous) => !previous);
         return;
       }
+      if (matchesShortcut(event, gameActions.autoBattle.key)) {
+        event.preventDefault();
+        updateSettings({ autoBattle: !getSettings().autoBattle });
+        return;
+      }
       const destination = gameAreas.find((entry) => matchesShortcut(event, entry.key));
       if (destination) {
         event.preventDefault();
@@ -414,6 +420,9 @@ function GameLayout({ save, area, pokemonId, onNavigate, onExit, onChangeSprite,
                       )}
                       <CommandItem onSelect={() => { setCommandOpen(false); setReduceMotion((value) => !value); }}>
                         <Keyboard /><span>{gameActions.motion.label}</span><CommandShortcut>{shortcutLabel(gameActions.motion.key)}</CommandShortcut>
+                      </CommandItem>
+                      <CommandItem onSelect={() => { setCommandOpen(false); updateSettings({ autoBattle: !getSettings().autoBattle }); }}>
+                        <Swords /><span>{gameActions.autoBattle.label}</span><CommandShortcut>{shortcutLabel(gameActions.autoBattle.key)}</CommandShortcut>
                       </CommandItem>
                       <CommandItem onSelect={onExit}>
                         <LogOut /><span>{gameActions.exit.label}</span><CommandShortcut>{shortcutLabel(gameActions.exit.key)}</CommandShortcut>

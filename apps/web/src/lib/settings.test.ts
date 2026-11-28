@@ -6,6 +6,7 @@ test('os efeitos sonoros começam ligados, a 70%', () => {
   const settings = readSettings(null);
   assert.equal(settings.effectsEnabled, true);
   assert.equal(settings.effectsVolume, 0.7);
+  assert.equal(settings.autoBattle, false);
   assert.equal(defaultSettings.effectsEnabled, true);
 });
 
@@ -19,4 +20,9 @@ test('o volume dos efeitos e da rádio é limitado a 0–100% em passos de 5%', 
 test('só "false" desliga os efeitos; configurações antigas, sem o campo, continuam ligadas', () => {
   assert.equal(readSettings(JSON.stringify({ effectsEnabled: false })).effectsEnabled, false);
   assert.equal(readSettings(JSON.stringify({ theme: 'noturno' })).effectsEnabled, true);
+});
+
+test('auto-batalha só liga com true explícito', () => {
+  assert.equal(readSettings(JSON.stringify({ autoBattle: true })).autoBattle, true);
+  assert.equal(readSettings(JSON.stringify({ autoBattle: 'sim' })).autoBattle, false);
 });

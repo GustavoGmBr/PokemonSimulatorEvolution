@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Maximize, Minimize, Music, RotateCcw, SkipForward, Video, Volume2 } from 'lucide-react';
+import { Maximize, Minimize, Music, RotateCcw, SkipForward, Swords, Video, Volume2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { battleKeyActions, resetBattleKeys, setBattleKey, useBattleKeys, type BattleKeyAction } from '@/lib/battle-keys';
@@ -99,7 +99,7 @@ function Controls() {
   };
 
   const shortcuts = [
-    ...(['command', 'sidebar', 'fullscreen', 'motion', 'exit', 'back', 'confirm'] as const).map((id) => ({
+    ...(['command', 'sidebar', 'fullscreen', 'motion', 'autoBattle', 'exit', 'back', 'confirm'] as const).map((id) => ({
       id: `action:${id}`, label: gameActions[id].label, key: gameActions[id].key,
     })),
     ...gameAreas.map((area) => ({ id: `area:${area.id}`, label: area.label, key: area.key })),
@@ -216,6 +216,13 @@ export function OptionsScreen({ reduceMotion, setReduceMotion, fullscreen, toggl
               <input type="range" min={0} max={100} step={5} value={Math.round(settings.effectsVolume * 100)} disabled={!settings.effectsEnabled}
                 onChange={(event) => set({ effectsVolume: Number(event.target.value) / 100 })} />
             </label>
+          </Section>
+
+          <Section id="autobattle" title="Auto-batalha" description="O jogo escolhe o golpe de cada turno, pela vantagem de tipo e pelo dano esperado, e coloca o melhor Pokémon quando um cai. Não captura, não usa itens e não foge. Também dá para ligar e desligar durante a batalha.">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <label htmlFor="options-autobattle" className="flex items-center gap-2 text-sm font-bold"><Swords aria-hidden="true" className="size-4" /> Ligar a auto-batalha <kbd className="game-key">{shortcutLabel(gameActions.autoBattle.key)}</kbd></label>
+              <Switch id="options-autobattle" checked={settings.autoBattle} onCheckedChange={(autoBattle) => set({ autoBattle })} />
+            </div>
           </Section>
 
           <Section id="video" title="Player de vídeo" description="Um player do YouTube no canto da tela, para música, vídeos ou lives enquanto joga.">

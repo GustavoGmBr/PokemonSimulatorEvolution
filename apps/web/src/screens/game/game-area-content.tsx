@@ -117,6 +117,7 @@ function ShortcutList() {
     [gameActions.sidebar.label, combo(gameActions.sidebar.key)],
     [gameActions.fullscreen.label, combo(gameActions.fullscreen.key)],
     [gameActions.motion.label, combo(gameActions.motion.key)],
+    [gameActions.autoBattle.label, combo(gameActions.autoBattle.key)],
     [gameActions.exit.label, combo(gameActions.exit.key)],
   ];
   const wildControls = [

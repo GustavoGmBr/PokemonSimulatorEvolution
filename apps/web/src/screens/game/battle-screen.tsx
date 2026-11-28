@@ -12,8 +12,10 @@ import type { WildEncounter } from '@/lib/wild';
 import { levelProgress } from '@/lib/battle/experience';
 import { effectiveness, effectivenessLabel } from '@/lib/battle/typechart';
 import { STAGE_KEYS, STAGE_LABELS, emptyStages, type BattleEvent, type BattleState, type Combatant, type StageKey, type StatusKind } from '@/lib/battle/engine';
+import { updateSettings } from '@/lib/settings';
+import { gameActions, shortcutLabel } from './game-navigation';
 import { actionForKey, useBattleKeys, type BattleKeyAction } from '@/lib/battle-keys';
-import { act, battleBag, battleBallChance, battleContext, bossCaptureOdds, keepBoss, settleBattle, startOpponentBattle, startWildBattle, throwAtBoss, type BattleRequest } from '@/lib/battle/session';
+import { act, autoRequest, battleBag, battleBallChance, battleContext, bossCaptureOdds, keepBoss, settleBattle, startOpponentBattle, startWildBattle, throwAtBoss, type BattleRequest } from '@/lib/battle/session';
 import type { Opponent } from '@/lib/battle/challenges';
 import { completeOpponent } from '@/lib/battle/challenges';
 import { getTrainerSprite } from '@/lib/trainer-sprites';
@@ -306,6 +308,16 @@ function BattleSession({ encounter, opponent, game, scene, onFinish }: ({
   textCps.current = textSpeedOf(settings.textSpeed).cps;
   useEffect(() => { speed.current = (fast ? 2.2 : 1) * animationFactorOf(settings.animationSpeed); }, [fast, settings.animationSpeed]);
 
+  // Auto-batalha: com a vez livre, escolhe o golpe (ou quem entra) depois de uma pausa curta, que dá tempo de desligar.
+  useEffect(() => {
+    if (!settings.autoBattle || busy || bossBusy || battle.phase === 'ended') return;
+    const timer = window.setTimeout(() => {
+      const request = autoRequest(battle);
+      if (request) void run(request);
+    }, 600 / speed.current);
+    return () => window.clearTimeout(timer);
+  }); // eslint-disable-line react-hooks/exhaustive-deps
+
   async function run(request: BattleRequest) {
     if (busy || battle.phase === 'ended') return;
     setError(null);
@@ -386,6 +398,8 @@ function BattleSession({ encounter, opponent, game, scene, onFinish }: ({
             {partnerSprite && <TrainerSpritePreview sprite={partnerSprite} />}
             <strong className="text-sm">{opponent.name}</strong>
           </div>}
+          <button type="button" onClick={() => updateSettings({ autoBattle: !settings.autoBattle })} aria-pressed={settings.autoBattle}
+            title={`${gameActions.autoBattle.label} (${shortcutLabel(gameActions.autoBattle.key)})`}>Auto-batalha {settings.autoBattle ? 'ligada' : 'desligada'}</button>
           <button type="button" onClick={() => setFast((f) => !f)} aria-pressed={fast}>Velocidade {fast ? '×2' : '×1'}</button>
         </div>
         <FxStage ref={stage} scene={scene} playerSheet={playerSprite.sheet} playerArt={playerSprite.art}

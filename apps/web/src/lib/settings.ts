@@ -41,10 +41,12 @@ export type Settings = {
   effectsEnabled: boolean;
   /** 0 a 1, em passos de 5%. */
   effectsVolume: number;
+  /** Auto-batalha: o jogo escolhe o golpe de cada turno (e quem entra quando um Pokémon cai). */
+  autoBattle: boolean;
 };
 
 export const defaultSettings: Settings = {
-  theme: 'auto', textSpeed: 'normal', animationSpeed: 'normal', radioEnabled: false, radioVolume: 0.5, videoEnabled: false, effectsEnabled: true, effectsVolume: 0.7,
+  theme: 'auto', textSpeed: 'normal', animationSpeed: 'normal', radioEnabled: false, radioVolume: 0.5, videoEnabled: false, effectsEnabled: true, effectsVolume: 0.7, autoBattle: false,
 };
 
 const storageKey = 'pokesim-evolution:settings';
@@ -71,6 +73,7 @@ export function readSettings(raw: string | null): Settings {
       videoEnabled: value.videoEnabled === true,
       effectsEnabled: value.effectsEnabled !== false,
       effectsVolume: level(value.effectsVolume, defaultSettings.effectsVolume),
+      autoBattle: value.autoBattle === true,
     };
   } catch {
     return defaultSettings;

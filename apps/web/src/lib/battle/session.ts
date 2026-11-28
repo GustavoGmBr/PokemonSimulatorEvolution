@@ -8,10 +8,11 @@ import { createPokemon, loseDefeated, pokemonCount, type OwnedPokemon } from '..
 import type { WildEncounter } from '../wild';
 import { removeEncounter } from '../wild';
 import {
-  activeOf, chooseAction, combatantFrom, createBattle, failedThrow, finishCapture,
+  activeOf, battleAi, chooseAction, combatantFrom, createBattle, failedThrow, finishCapture,
   type BattleContext, type BattleEvent, type BattleState, type Combatant, type TrainerInfo,
 } from './engine';
 import { attemptCapture, captureChance, type CaptureInput } from './capture';
+import { pickAutoReplacement, pickAutoSlot } from './auto-battle';
 import { expForLevel } from './experience';
 import { HEAL_EFFECTS, STATUS_CURES, applyHealItem, applyStatusCure } from './items';
 import { levelUpMoves, toMoveSlot, type BattleInstance } from './pokemon';
@@ -354,4 +355,25 @@ export function throwAtBoss(boss: WildEncounter, ball: string, team: readonly Ow
 /** Guarda o chefe capturado no time ou no PC. Devolve a mensagem de erro se não houver lugar. */
 export function keepBoss(state: GameState, boss: WildEncounter, ball: string): GameState | string {
   return capture(state, createPokemon(boss.species, { level: boss.level, shiny: boss.shiny, ivs: boss.ivs, ball }));
+}
+
+// ---------- Auto-batalha ----------
+
+/** Pedido do próximo passo da auto-batalha, ou null quando não há o que escolher (batalha acabada ou ninguém para entrar). */
+export function autoRequest(state: BattleState): BattleRequest | null {
+  const foe = activeOf(state, 'foe');
+  if (state.phase === 'choose') {
+    const me = activeOf(state, 'player');
+    const options = battleAi.scoreMoves(me, foe, battleContext).map(({ slot, score }) => ({
+      slot, score, attack: battleContext.moves.get(me.moves[slot]!.name)?.category !== 'status',
+    }));
+    return { kind: 'move', slot: pickAutoSlot(options) };
+  }
+  if (state.phase === 'replace') {
+    const candidates = state.player.team.flatMap((combatant, index) => (combatant.hp > 0 && index !== state.player.active
+      ? [{ index, matchup: battleAi.matchup(combatant, foe, battleContext) }] : []));
+    const to = pickAutoReplacement(candidates);
+    return to < 0 ? null : { kind: 'switch', to };
+  }
+  return null;
 }

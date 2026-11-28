@@ -1,3 +1,7 @@
+## Pokémon Simulator Evolution 1.5.0
+
+- **Auto-batalha:** nova opção em **Opções → Auto-batalha**, que também liga e desliga com **Ctrl + ;** (a tecla pode ser trocada em Opções → Controles) ou pelo botão "Auto-batalha" no topo da batalha, a qualquer momento. Ligada, o jogo escolhe o golpe de cada turno entre os ataques do seu Pokémon, pela vantagem de tipo e pelo dano esperado (efetividade, STAB, precisão e golpes em sequência), dando preferência ao golpe que derruba o adversário. Quando um Pokémon cai, entra o melhor confronto. Ela não captura, não usa itens e não foge.
+
 ## Pokémon Simulator Evolution 1.4.6
 
 - **Capturar chefes:** ao derrotar um chefe, o resultado mostra as suas Poké Bolas com a chance de cada uma. O chefe fica enfraquecido (1 de HP), então comuns são fáceis e lendários continuam difíceis; a Master Bola sempre captura. Dá para arremessar quantas bolas quiser; ao escapar, ele sai da bola e você pode tentar de novo. "Continuar" deixa o chefe ir. A Grande Bola de recompensa só chega depois de fechar o resultado.

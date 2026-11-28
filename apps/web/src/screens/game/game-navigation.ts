@@ -75,6 +75,7 @@ const defaultActions = {
   sidebar: { label: 'Alternar menu lateral', key: 'B' },
   fullscreen: { label: 'Alternar tela cheia', key: 'F' },
   motion: { label: 'Alternar redução de animações', key: '.' },
+  autoBattle: { label: 'Alternar auto-batalha', key: ';' },
   exit: { label: 'Desconectar', key: 'X' },
   back: { label: 'Voltar à configuração do mapa', key: 'Backspace' },
   confirm: { label: 'Procurar mapa (na configuração)', key: 'Enter' },

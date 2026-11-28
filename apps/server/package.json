@@ -1,6 +1,6 @@
 {
   "name": "@pokesim-evolution/server",
-  "version": "1.4.6",
+  "version": "1.5.0",
   "private": true,
   "type": "module",
   "description": "Servidor local do jogo: interface, recursos e saves em SQLite (node:sqlite).",
