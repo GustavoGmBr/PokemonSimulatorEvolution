@@ -1,7 +1,7 @@
 import type { JourneyProgress } from './journey-saves';
 import type { WildBoard } from './wild';
 import { addPokemon, type Collection, type OwnedPokemon, type Result } from './pokemon-collection';
-import { recordMission } from './missions';
+import { recordCatch } from './missions';
 
 /** Parte do save que muda durante o jogo (o tempo jogado é controlado à parte). */
 export type GameState = { progress: JourneyProgress; collection: Collection; wild: WildBoard | null };
@@ -18,12 +18,12 @@ export function onCollection(operation: (collection: Collection) => Result): Gam
 }
 
 /** Registra uma captura: guarda o Pokémon e atualiza Pokédex, total de capturas e shinies. */
-export function capture(state: GameState, pokemon: OwnedPokemon): GameState | string {
+export function capture(state: GameState, pokemon: OwnedPokemon, countMissions = true): GameState | string {
   const collection = addPokemon(state.collection, pokemon);
   if (typeof collection === 'string') return collection;
 
   const { progress } = state;
-  return recordMission({
+  const stored: GameState = {
     ...state,
     collection,
     progress: {
@@ -36,5 +36,6 @@ export function capture(state: GameState, pokemon: OwnedPokemon): GameState | st
         shinies: progress.stats.shinies + (pokemon.shiny ? 1 : 0),
       },
     },
-  }, 'capture', pokemon.species);
+  };
+  return countMissions ? recordCatch(stored, pokemon) : stored;
 }

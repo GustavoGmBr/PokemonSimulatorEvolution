@@ -3,7 +3,7 @@
 .battle-overlay {
   position: fixed;
   inset: 0;
-  z-index: 60;
+  z-index: 1000010;
   display: grid;
   place-items: center;
   overflow-y: auto;
@@ -12,6 +12,7 @@
   backdrop-filter: blur(2px);
 }
 .battle-panel { width: min(100%, 52rem, calc((100dvh - 14rem) * 1.5)); min-width: min(100%, 22rem); display: grid; gap: .6rem; }
+.battle-panel[data-horde] { width: min(100%, 52rem, calc((100dvh - 23rem) * 1.5)); }
 .battle-panel .battle-arena { border: 3px solid #0e1626; border-radius: .6rem; box-shadow: 0 .6rem 2rem rgb(0 0 0 / .45); }
 
 .battle-hud {
@@ -120,3 +121,17 @@
 .battle-capture-chance { display: inline-flex; align-items: center; margin-top: .15rem; padding: .2rem .5rem; border: 1px solid #16803c; border-radius: 999px; background: #dcfce7; color: #14532d; font-size: .82rem; font-weight: 800; line-height: 1.2; }
 .battle-team-choice { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .4rem; }
 .battle-analyze { min-width: 6rem; padding-inline: .65rem; font-size: .76rem; }
+
+/* Horda: lista dos adversários em campo (escolhe-se o alvo clicando) e etiqueta dos golpes em área. */
+.battle-horde { display: flex; flex-wrap: wrap; gap: .4rem; margin: 0; padding: 0; list-style: none; }
+.battle-horde > li { flex: 1 1 8rem; min-width: 0; }
+.battle-horde button {
+  display: grid; width: 100%; gap: .2rem; padding: .35rem .55rem; text-align: left; font-size: .78rem; cursor: pointer;
+  border: 2px solid #475569; border-radius: .5rem; background: #1e293b; color: #e2e8f0;
+}
+.battle-horde button[data-active="true"] { border-color: #facc15; background: #334155; }
+.battle-horde button[data-down="true"] { opacity: .45; cursor: default; }
+.battle-horde button:disabled { cursor: default; }
+.battle-horde-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.battle-horde-name small { font-weight: 400; opacity: .8; }
+.battle-area { color: #0369a1; font-weight: 700; }

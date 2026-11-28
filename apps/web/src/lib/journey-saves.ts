@@ -3,7 +3,7 @@ import { readWild, type WildBoard } from './wild';
 import { newCollection, pokedexTotal, readCollection, type Collection } from './pokemon-collection';
 import { readMarket, type MarketStock } from './market';
 import { readCasinoRound, type CasinoRound } from './casino';
-import type { MissionState } from './missions';
+import { readMissionState, type MissionState } from './mission-goals';
 import { gameStorage } from './game-storage.ts';
 
 export { pokedexTotal };
@@ -159,7 +159,7 @@ function readProgress(value: unknown, starter: Starter): JourneyProgress {
     },
     market: readMarket(value.market),
     challenges: readChallengeProgress(value.challenges),
-    missions: readMissions(value.missions),
+    missions: readMissionState(value.missions),
     lineups: Array.isArray(value.lineups) ? value.lineups.slice(0, 20).flatMap((entry: unknown) => {
       if (!isRecord(entry) || typeof entry.id !== 'string' || typeof entry.name !== 'string' || !entry.name.trim() || !Array.isArray(entry.uids)) return [];
       const uids = [...new Set(entry.uids.filter((uid): uid is string => typeof uid === 'string'))].slice(0, 6);
@@ -167,14 +167,6 @@ function readProgress(value: unknown, starter: Starter): JourneyProgress {
     }) : undefined,
     casinoRound: readCasinoRound(value.casinoRound),
   };
-}
-
-function readMissions(value: unknown): MissionState | undefined {
-  if (!isRecord(value) || typeof value.period !== 'number' || !Number.isSafeInteger(value.period)) return;
-  const integers = (data: unknown, max: number) => Array.isArray(data)
-    ? [...new Set(data.filter((n): n is number => Number.isSafeInteger(n) && n >= 0 && n <= max))] : [];
-  return { period: value.period, captures: integers(value.captures, pokedexTotal), claimed: integers(value.claimed, 10),
-    wild: readCount(value.wild, 0), trainer: readCount(value.trainer, 0), cup: readCount(value.cup, 0) };
 }
 
 function readChallengeProgress(value: unknown): ChallengeProgress {

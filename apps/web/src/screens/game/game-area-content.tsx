@@ -34,7 +34,7 @@ const WildScreen = lazy(() => import('./wild-screen'));
 const ShopScreen = lazy(() => import('./shop-screen'));
 const MarketScreen = lazy(() => import('./market-screen'));
 const InventoryScreen = lazy(() => import('./inventory-screen'));
-const MissionsScreen = lazy(() => import('./activities-screen').then(({ MissionsScreen }) => ({ default: MissionsScreen })));
+const MissionsScreen = lazy(() => import('./missions-screen').then(({ MissionsScreen }) => ({ default: MissionsScreen })));
 const LineupsScreen = lazy(() => import('./activities-screen').then(({ LineupsScreen }) => ({ default: LineupsScreen })));
 const CasinoScreen = lazy(() => import('./casino/casino-screen'));
 const ChallengesScreen = lazy(() => import('./challenges-screen'));

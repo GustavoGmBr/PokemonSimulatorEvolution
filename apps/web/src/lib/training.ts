@@ -7,6 +7,7 @@ import { boxPokemon, getAt, locate, updatePokemon, type OwnedPokemon } from './p
 import { expForLevel, levelForExp } from './battle/experience';
 import { isUsableMove, levelUpMoves } from './battle/pokemon';
 import { levelCap, wildBadges } from './wild';
+import { recordEvolution } from './missions';
 import { getShopItem } from '@pokesim-evolution/data/shop-items';
 
 type Condition = { trigger: string; level: number | null; item: string | null; heldItem: string | null; happiness: number | null; timeOfDay: string | null; knownMoveType: string | null };
@@ -115,8 +116,9 @@ export function usePokemonItem(uid: string, action: { item: string } | Choice, n
       if (quantity === 1) delete bag[item];
       else bag[item] = quantity - 1;
     }
-    return { ...game, collection: updatePokemon(game.collection, uid, () => next), progress: {
+    const updated: GameState = { ...game, collection: updatePokemon(game.collection, uid, () => next), progress: {
       ...game.progress, bag, caughtSpecies: [...new Set([...game.progress.caughtSpecies, next.species])],
     } };
+    return next.species !== pokemon.species ? recordEvolution(updated, next.species) : updated;
   };
 }

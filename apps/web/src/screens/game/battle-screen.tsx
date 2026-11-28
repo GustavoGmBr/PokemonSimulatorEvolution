@@ -12,10 +12,11 @@ import type { WildEncounter } from '@/lib/wild';
 import { levelProgress } from '@/lib/battle/experience';
 import { effectiveness, effectivenessLabel } from '@/lib/battle/typechart';
 import { STAGE_KEYS, STAGE_LABELS, emptyStages, type BattleEvent, type BattleState, type Combatant, type StageKey, type StatusKind } from '@/lib/battle/engine';
-import { updateSettings } from '@/lib/settings';
-import { gameActions, shortcutLabel } from './game-navigation';
+import { getSettings, updateSettings } from '@/lib/settings';
+import { gameActions, matchesShortcut, shortcutLabel } from './game-navigation';
 import { actionForKey, useBattleKeys, type BattleKeyAction } from '@/lib/battle-keys';
-import { act, autoRequest, battleBag, battleBallChance, battleContext, bossCaptureOdds, keepBoss, settleBattle, startOpponentBattle, startWildBattle, throwAtBoss, type BattleRequest } from '@/lib/battle/session';
+import { act, autoRequest, battleBag, battleBallChance, battleContext, bossCaptureOdds, keepBoss, settleBattle, startHordeBattle, startOpponentBattle, startWildBattle, throwAtBoss, type BattleRequest } from '@/lib/battle/session';
+import { AREA_LABEL, isAreaMove } from '@/lib/battle/area';
 import type { Opponent } from '@/lib/battle/challenges';
 import { completeOpponent } from '@/lib/battle/challenges';
 import { getTrainerSprite } from '@/lib/trainer-sprites';
@@ -39,7 +40,10 @@ type Mon = {
 };
 /** Última mudança de atributo, para o aviso que sobe do painel (o id muda a cada evento e reinicia a animação). */
 type StagePop = { id: number; side: 'player' | 'foe'; stat: StageKey; change: number };
-type Display = { player: Mon; foe: Mon; playerState: SpriteState; foeState: SpriteState; pop: StagePop | null };
+/** Horda: um adversário com o estado do seu sprite; `gone` = capturado. */
+type HordeMon = Mon & { state: SpriteState; gone?: boolean };
+/** `foe` é o adversário em destaque (o alvo); numa horda, `foes` traz todos eles e `foe.index` diz qual está em destaque. */
+type Display = { player: Mon; foe: Mon; playerState: SpriteState; foeState: SpriteState; pop: StagePop | null; foes?: HordeMon[] };
 type Menu = 'main' | 'moves' | 'bag' | 'team' | { heal: string } | null;
 
 const statusNames: Record<StatusKind, string> = { burn: 'QUE', poison: 'ENV', paralysis: 'PAR', sleep: 'SON', freeze: 'CON', confusion: 'CNF' };
@@ -124,7 +128,7 @@ function BattleSession({ encounter, opponent, game, scene, onFinish }: ({
   onFinish: (settle: (state: GameState) => GameState) => void;
 }) {
   const playerCap = levelCap(wildBadges(game.progress));
-  const initial = useMemo(() => opponent ? startOpponentBattle(game.collection.team, opponent.team, {
+  const initial = useMemo(() => encounter?.horde ? startHordeBattle(game.collection.team, encounter, game.collection.companion, playerCap) : opponent ? startOpponentBattle(game.collection.team, opponent.team, {
     name: opponent.name, title: opponent.title, skill: opponent.skill, lastSwitch: -3,
     bag: opponent.skill > 1 ? [{ item: 'super-potion', name: 'Super Poção', heal: 50, cures: false, qty: 1 }] : [],
   }, opponent.cap, playerCap) : startWildBattle(game.collection.team, encounter!, game.collection.companion, playerCap), []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -138,10 +142,13 @@ function BattleSession({ encounter, opponent, game, scene, onFinish }: ({
   const ballUsed = useRef<string | null>(null);
   const [battle, setBattle] = useState<BattleState>(initial.state);
   const [bag, setBag] = useState(game.progress.bag);
-  const [display, setDisplay] = useState<Display>(() => ({
-    player: monOf(initial.state.player.team[initial.state.player.active]!, initial.state.player.active),
-    foe: monOf(initial.state.foe.team[0]!, 0), playerState: 'hidden', foeState: 'hidden', pop: null,
-  }));
+  const [display, setDisplay] = useState<Display>(() => {
+    const foes = initial.state.horde ? initial.state.foe.team.map((c, index): HordeMon => ({ ...monOf(c, index), state: 'hidden' })) : undefined;
+    return {
+      player: monOf(initial.state.player.team[initial.state.player.active]!, initial.state.player.active),
+      foe: foes ? foes[0]! : monOf(initial.state.foe.team[0]!, 0), playerState: 'hidden', foeState: 'hidden', pop: null, foes,
+    };
+  });
   const [message, setMessage] = useState('');
   const [menu, setMenu] = useState<Menu>(null);
   const [busy, setBusy] = useState(true);
@@ -157,10 +164,29 @@ function BattleSession({ encounter, opponent, game, scene, onFinish }: ({
   const keys = useBattleKeys();
 
   const wait = (ms: number) => sleep(ms / speed.current);
-  const patch = (side: 'player' | 'foe', change: Partial<Mon>) => setDisplay((d) => ({ ...d, [side]: { ...d[side], ...change } }));
+  /** Altera o painel de um lado; na horda, `target` é o adversário atingido (sem ele, o que está em destaque). */
+  const patch = (side: 'player' | 'foe', change: Partial<Mon>, target?: number) => setDisplay((d) => {
+    if (side === 'foe' && d.foes) {
+      const at = target ?? d.foe.index;
+      const foes = d.foes.map((entry, index) => (index === at ? { ...entry, ...change } : entry));
+      return { ...d, foes, foe: foes[d.foe.index]! };
+    }
+    return { ...d, [side]: { ...d[side], ...change } };
+  });
+  /** Horda: muda o estado do sprite de um adversário (e o do palco, se ele estiver em destaque). */
+  const setFoeState = (target: number, state: SpriteState, change: Partial<HordeMon> = {}) => setDisplay((d) => {
+    if (!d.foes) return { ...d, foeState: state };
+    const foes = d.foes.map((entry, index) => (index === target ? { ...entry, ...change, state } : entry));
+    return { ...d, foes, foe: foes[d.foe.index]!, foeState: target === d.foe.index ? state : d.foeState };
+  });
+  /** Horda: põe outro adversário em destaque (é nele que o golpe ou a bola vai cair). */
+  const focusOn = (index: number) => setDisplay((d) => (d.foes?.[index] ? { ...d, foe: d.foes[index]!, foeState: d.foes[index]!.state, pop: null } : d));
 
   /** Arremesso da Poké Bola: sai do jogador, engole o selvagem, cai no chão e balança; o resultado vem do motor. */
   async function throwBall(ev: Extract<BattleEvent, { k: 'ball' }>) {
+    // Horda: a bola vai no adversário escolhido, que sobe para o palco antes do arremesso.
+    const horde = ev.target !== undefined ? { index: ev.target } : null;
+    if (horde) focusOn(horde.index);
     const me = arenaLayout.spots.jogador;
     const them = arenaLayout.spots.adversario;
     await ballFx.current?.play({
@@ -168,9 +194,9 @@ function BattleSession({ encounter, opponent, game, scene, onFinish }: ({
       from: { x: me.x * 100 + 5, y: (me.y - 0.14) * 100 },
       to: { x: them.x * 100, y: (them.y - 0.11) * 100 },
       ground: { x: them.x * 100, y: (them.y - 0.04) * 100 },
-      onOpen: () => setDisplay((d) => ({ ...d, foeState: 'captured' })),
-      onRelease: () => setDisplay((d) => ({ ...d, foeState: 'idle' })),
-      onCaught: () => { playEffect('catching'); },
+      onOpen: () => (horde ? setFoeState(horde.index, 'captured') : setDisplay((d) => ({ ...d, foeState: 'captured' }))),
+      onRelease: () => (horde ? setFoeState(horde.index, 'idle') : setDisplay((d) => ({ ...d, foeState: 'idle' }))),
+      onCaught: () => { playEffect('catching'); if (horde) setFoeState(horde.index, 'captured', { gone: true, hp: 0 }); },
     });
   }
 
@@ -205,6 +231,12 @@ function BattleSession({ encounter, opponent, game, scene, onFinish }: ({
         case 'send': {
           const team = ev.side === 'player' ? before.player.team : before.foe.team;
           const c = team[ev.index];
+          if (ev.side === 'foe' && before.horde) {
+            // Horda: cada adversário aparece no seu lugar; o primeiro já fica em destaque.
+            if (c) setFoeState(ev.index, 'idle', monOf(c, ev.index));
+            await wait(450);
+            break;
+          }
           if (c) {
             setDisplay((d) => ({ ...d, [ev.side === 'player' ? 'player' : 'foe']: monOf(c, ev.index), [ev.side === 'player' ? 'playerState' : 'foeState']: 'idle' }));
           }
@@ -218,24 +250,29 @@ function BattleSession({ encounter, opponent, game, scene, onFinish }: ({
           break;
         }
         case 'hit':
-          patch(ev.side === 'player' ? 'player' : 'foe', { hp: ev.hp });
+          patch(ev.side === 'player' ? 'player' : 'foe', { hp: ev.hp }, ev.target);
           await wait(700);
           break;
         case 'heal':
-          patch(ev.side === 'player' ? 'player' : 'foe', { hp: ev.hp });
+          patch(ev.side === 'player' ? 'player' : 'foe', { hp: ev.hp }, ev.target);
           await wait(700);
           break;
         case 'status':
-          if (ev.status === 'confusion') patch(ev.side === 'player' ? 'player' : 'foe', { confused: true });
-          else patch(ev.side === 'player' ? 'player' : 'foe', { status: ev.status });
+          if (ev.status === 'confusion') patch(ev.side === 'player' ? 'player' : 'foe', { confused: true }, ev.target);
+          else patch(ev.side === 'player' ? 'player' : 'foe', { status: ev.status }, ev.target);
           await wait(900);
           break;
         case 'status-end':
-          if (ev.status === 'confusion') patch(ev.side === 'player' ? 'player' : 'foe', { confused: false });
-          else patch(ev.side === 'player' ? 'player' : 'foe', { status: null });
+          if (ev.status === 'confusion') patch(ev.side === 'player' ? 'player' : 'foe', { confused: false }, ev.target);
+          else patch(ev.side === 'player' ? 'player' : 'foe', { status: null }, ev.target);
           await wait(800);
           break;
         case 'faint':
+          if (ev.side === 'foe' && before.horde) {
+            setFoeState(ev.target ?? 0, 'fainted', { stages: emptyStages() });
+            await wait(1000);
+            break;
+          }
           // Ao desmaiar, os buffs e debuffs somem do painel.
           setDisplay((d) => {
             const side = ev.side === 'player' ? 'player' : 'foe';
@@ -251,17 +288,27 @@ function BattleSession({ encounter, opponent, game, scene, onFinish }: ({
           setDisplay((d) => (d.player.index === ev.index ? { ...d, player: { ...d.player, level: ev.level, hp: ev.hp, maxHp: ev.maxHp, xp: ev.progress } } : d));
           await wait(1000);
           break;
+        case 'focus':
+          focusOn(ev.index);
+          break;
         case 'ball':
           await throwBall(ev);
           break;
         case 'stage': {
           const side = ev.side === 'player' ? 'player' : 'foe';
-          setDisplay((d) => ({
-            ...d,
-            [side]: { ...d[side], stages: { ...d[side].stages, [ev.stat]: ev.value } },
-            pop: { id: (d.pop?.id ?? 0) + 1, side, stat: ev.stat, change: ev.change },
-          }));
-          await wait(850);
+          setDisplay((d) => {
+            if (side === 'foe' && d.foes) {
+              const at = ev.target ?? d.foe.index;
+              const foes = d.foes.map((entry, index) => (index === at ? { ...entry, stages: { ...entry.stages, [ev.stat]: ev.value } } : entry));
+              return { ...d, foes, foe: foes[d.foe.index]!, pop: at === d.foe.index ? { id: (d.pop?.id ?? 0) + 1, side, stat: ev.stat, change: ev.change } : d.pop };
+            }
+            return {
+              ...d,
+              [side]: { ...d[side], stages: { ...d[side].stages, [ev.stat]: ev.value } },
+              pop: { id: (d.pop?.id ?? 0) + 1, side, stat: ev.stat, change: ev.change },
+            };
+          });
+          await wait(before.horde && ev.side === 'foe' ? 450 : 850);
           break;
         }
         case 'miss':
@@ -318,9 +365,12 @@ function BattleSession({ encounter, opponent, game, scene, onFinish }: ({
     return () => window.clearTimeout(timer);
   }); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function run(request: BattleRequest) {
+  async function run(input: BattleRequest) {
     if (busy || battle.phase === 'ended') return;
     setError(null);
+    // Horde: golpes e bolas caem no adversário em destaque, a menos que o pedido já traga o alvo.
+    const request: BattleRequest = battle.horde && (input.kind === 'move' || input.kind === 'ball') && input.target === undefined
+      ? { ...input, target: display.foe.index } : input;
     let step;
     try { step = act(battle, bag, request); } catch (failure) { setError(failure instanceof Error ? failure.message : 'Ação inválida.'); return; }
     if (request.kind === 'ball') ballUsed.current = request.item;
@@ -332,7 +382,10 @@ function BattleSession({ encounter, opponent, game, scene, onFinish }: ({
   }
 
   const me = battle.player.team[battle.player.active]!;
-  const foe = battle.foe.team[battle.foe.active]!;
+  const focus = battle.horde ? display.foe.index : battle.foe.active;
+  const foe = battle.foe.team[focus]!;
+  /** Estado visto pelo jogador: na horda, o alvo em destaque (chance de captura e efetividade dependem dele). */
+  const view = battle.horde && focus !== battle.foe.active ? { ...battle, foe: { ...battle.foe, active: focus } } : battle;
   const items = battleBag(bag, battle.kind);
   const ended = battle.phase === 'ended' && !busy;
   const bossBalls = opponent?.mode === 'chefes' && battle.result === 'win' && !bossCaught ? battleBag(bag, 'wild').balls : [];
@@ -350,6 +403,17 @@ function BattleSession({ encounter, opponent, game, scene, onFinish }: ({
       return typeof kept === 'string' ? completed : kept;
     });
   };
+
+  // O atalho global da auto-batalha (Ctrl + tecla) também vale durante a luta, onde os atalhos da tela do jogo ficam desligados.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey || event.repeat || !matchesShortcut(event, gameActions.autoBattle.key)) return;
+      event.preventDefault();
+      updateSettings({ autoBattle: !getSettings().autoBattle });
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   // Atalhos de teclado (as teclas são configuráveis na ficha do Pokémon): golpes 1 a 4 e os botões do menu principal.
   useEffect(() => {
@@ -391,7 +455,7 @@ function BattleSession({ encounter, opponent, game, scene, onFinish }: ({
 
   return (
     <div className="battle-overlay" role="dialog" aria-modal="true" aria-label="Batalha">
-      <div className="battle-panel">
+      <div className="battle-panel" data-horde={battle.horde ? 'true' : undefined}>
         <div className="battle-tools">
           {opponent && <div className="flex items-center gap-2">
             {opponentSprite && <TrainerSpritePreview sprite={opponentSprite} />}
@@ -404,6 +468,10 @@ function BattleSession({ encounter, opponent, game, scene, onFinish }: ({
         </div>
         <FxStage ref={stage} scene={scene} playerSheet={playerSprite.sheet} playerArt={playerSprite.art}
           enemySheet={foeSprite.sheet} enemyArt={foeSprite.art} playerState={display.playerState} enemyState={display.foeState}
+          others={display.foes?.flatMap((entry, index) => (index === display.foe.index ? [] : [{
+            key: `${battle.foe.team[index]!.ref || 'horda'}:${index}`, ...spriteOf(entry), state: entry.state,
+            label: `${entry.name} nível ${entry.level}`, onPick: () => { if (!busy && !ended) focusOn(index); },
+          }]))}
           overlay={(
             <div className="battle-arena-front" style={{ pointerEvents: 'none' }}>
               <Hud side="adversario" mon={display.foe} pop={display.pop?.side === 'foe' ? display.pop : null} />
@@ -412,13 +480,32 @@ function BattleSession({ encounter, opponent, game, scene, onFinish }: ({
             </div>
           )} />
 
+        {display.foes && (
+          <ul className="battle-horde" aria-label="Horda: escolha o alvo">
+            {display.foes.map((entry, index) => {
+              const down = entry.hp <= 0 || entry.gone;
+              return (
+                <li key={index}>
+                  <button type="button" data-active={index === display.foe.index} data-down={down ? 'true' : undefined}
+                    disabled={down || busy || ended} aria-pressed={index === display.foe.index} onClick={() => focusOn(index)}>
+                    <span className="battle-horde-name">{entry.name}{entry.shiny ? ' ✨' : ''} <small>Nv {entry.level}</small></span>
+                    <span className="battle-track"><span className="battle-fill" data-level={level(entry.hp, entry.maxHp)} style={{ width: `${entry.hp > 0 ? Math.max(2, (entry.hp / entry.maxHp) * 100) : 0}%` }} /></span>
+                    {entry.status && <span className="battle-status" data-status={entry.status}>{statusNames[entry.status]}</span>}
+                    {entry.gone && <small>capturado</small>}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
         <div className="battle-console">
           <div className="battle-message" aria-live="polite">
             {ended && settled ? (
               <div className="battle-result">
                 <h2>{resultTitle}</h2>
                 <ul>
-                  {settled.outcome.caught && <li>{settled.outcome.caught.nickname ?? foe.name} foi para o seu time ou PC.</li>}
+                  {settled.outcome.caughtAll.map((pokemon) => <li key={pokemon.uid}>{pokemon.nickname ?? getPokemon(pokemon.species)?.displayName ?? foe.name} foi para o seu time ou PC.</li>)}
                   {settled.outcome.problem && <li className="battle-error">{settled.outcome.problem}</li>}
                   {settled.outcome.money > 0 && <li>Você ganhou ₽ {settled.outcome.money.toLocaleString('pt-BR')}.</li>}
                   {settled.outcome.levels.map((entry) => <li key={entry.name}>{entry.name} chegou ao nível {entry.level}.</li>)}
@@ -426,7 +513,7 @@ function BattleSession({ encounter, opponent, game, scene, onFinish }: ({
                   {settled.outcome.lost.map((name) => <li key={name} className="battle-error">{name} foi derrotado e perdido para sempre.</li>)}
                   {settled.outcome.gameOver && <li className="battle-error">Todos os seus Pokémon foram derrotados. O save será apagado.</li>}
                   {battle.kind === 'trainer' && game.progress.mode !== 'permadeath' && <li>Sua equipe foi curada.</li>}
-                  {battle.result === 'fled' && <li>O Pokémon continua no mapa.</li>}
+                  {battle.result === 'fled' && <li>{battle.horde && settled.outcome.caughtAll.length > 0 ? 'O restante da horda foi embora.' : battle.horde ? 'A horda continua no mapa.' : 'O Pokémon continua no mapa.'}</li>}
                   {opponent?.mode === 'chefes' && battle.result === 'win' && !bossCaught && bossMisses === 0 && bossBalls.length > 0 && <li>{foe.name} está enfraquecido: dá para tentar capturá-lo antes de continuar.</li>}
                   {bossMisses > 0 && !bossCaught && <li>{foe.name} escapou {bossMisses === 1 ? 'da bola' : `de ${bossMisses} bolas`}.</li>}
                   {bossCaught && <li className="font-bold">{foe.name} foi capturado e vai para o seu time ou PC!</li>}
@@ -469,7 +556,7 @@ function BattleSession({ encounter, opponent, game, scene, onFinish }: ({
                       <button key={slot.name} type="button" className="battle-btn" data-move-type={move?.type} disabled={busy}
                         style={{ ['--move-color' as string]: palettes[(move?.type ?? 'normal') as FxType].mid }}
                         onClick={() => void run({ kind: 'move', slot: index })}>
-                        <span>{move?.displayName ?? slot.name}<br /><small>{typeLabels[move?.type ?? 'normal']} · {move && move.category !== 'status' ? `poder ${move.power}` : 'status'}</small></span>
+                        <span>{move?.displayName ?? slot.name}<br /><small>{typeLabels[move?.type ?? 'normal']} · {move && move.category !== 'status' ? `poder ${move.power}` : 'status'}{move && isAreaMove(move) && <> · <b className="battle-area" title="Atinge todos os adversários de uma horda">{AREA_LABEL}</b></>}</small></span>
                         <span className="battle-btn-side">
                           {mult !== null && mult !== 1 && <small>{effectivenessLabel(mult)}</small>}
                           <kbd className="battle-key">{keys[`move${index + 1}` as BattleKeyAction]}</kbd>
@@ -489,7 +576,7 @@ function BattleSession({ encounter, opponent, game, scene, onFinish }: ({
                 </div>
                 {bagTab === 'captura' && items.balls.map((ball) => (
                   <button key={ball.name} type="button" className="battle-btn" disabled={busy} onClick={() => void run({ kind: 'ball', item: ball.name })}>
-                    <span className="battle-ball-copy">{ball.displayName}<small>{getBattleItem(ball.name)?.description}</small><strong className="battle-capture-chance" aria-label={`Chance de captura ${Math.round(battleBallChance(battle, ball.name, bag) * 1000) / 10}%`}>Captura: {Math.round(battleBallChance(battle, ball.name, bag) * 1000) / 10}%</strong></span><b>×{ball.quantity}</b>
+                    <span className="battle-ball-copy">{ball.displayName}<small>{getBattleItem(ball.name)?.description}</small><strong className="battle-capture-chance" aria-label={`Chance de captura ${Math.round(battleBallChance(view, ball.name, bag) * 1000) / 10}%`}>Captura: {Math.round(battleBallChance(view, ball.name, bag) * 1000) / 10}%</strong></span><b>×{ball.quantity}</b>
                   </button>
                 ))}
                 {bagTab === 'cura' && items.heals.map((heal) => (

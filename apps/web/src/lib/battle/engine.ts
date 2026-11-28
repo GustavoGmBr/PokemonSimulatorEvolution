@@ -5,6 +5,7 @@ import { expForLevel, levelForExp, levelProgress, MAX_LEVEL } from './experience
 import { stageMultiplier } from './stats';
 import { isUsableMove, statsOf, type BattleInstance } from './pokemon';
 import { formOf } from '../training';
+import { AREA_DAMAGE, isAreaMove } from './area';
 
 /**
  * Motor de batalha: funções puras sobre um estado serializável.
@@ -66,6 +67,8 @@ export interface Combatant {
   capped?: boolean;
   /** nível máximo liberado para este Pokémon (ginásios da região dele): não ganha XP além dele */
   levelCap?: number;
+  /** horda: capturado dentro desta Poké Bola (sai de campo com 0 de HP, sem desmaiar) */
+  caught?: string;
 }
 
 export interface BattleSide {
@@ -120,9 +123,15 @@ export interface BattleState {
   runAttempts: number;
   player: BattleSide;
   foe: BattleSide;
+  /** horda: todos os adversários de `foe.team` lutam ao mesmo tempo e `foe.active` é o alvo escolhido pelo jogador */
+  horde?: boolean;
+  /** quantas vezes o jogador usou golpes em área (conta para as missões) */
+  areaUses?: number;
 }
 
-export type BattleEvent = { text: string } & (
+export { isAreaMove, AREA_DAMAGE };
+
+export type BattleEvent = { text: string; /** horda: índice do adversário (em `foe.team`) a quem o evento se refere */ target?: number } & (
   | { k: 'text' }
   | { k: 'send'; side: SideKey; index: number }
   | { k: 'move'; side: SideKey; move: string; moveName: string; type: TypeName; category: Move['category'] }
@@ -140,10 +149,12 @@ export type BattleEvent = { text: string } & (
   | { k: 'run'; ok: boolean }
   | { k: 'money'; amount: number }
   | { k: 'end'; result: BattleResult }
+  /** horda: o alvo escolhido passou a ser outro adversário */
+  | { k: 'focus'; index: number }
 );
 
 export type BattleAction =
-  | { kind: 'move'; slot: number }
+  | { kind: 'move'; slot: number; /** horda: quem recebe o golpe (os golpes em área acertam todos) */ target?: number }
   | { kind: 'switch'; to: number }
   /** o jogador gastou o turno com um item ou bola (o servidor aplica o efeito antes) */
   | { kind: 'pass'; text?: string }
@@ -188,18 +199,25 @@ const labelOf = (state: BattleState, side: SideKey, c: Combatant): string => {
 };
 
 /** Começa uma batalha: o primeiro Pokémon vivo da equipe entra em campo. */
-export function createBattle(input: { player: Combatant[]; foe: Combatant[]; seed: number; kind?: 'wild' | 'trainer'; trainer?: TrainerInfo }): { state: BattleState; events: BattleEvent[] } {
+export function createBattle(input: { player: Combatant[]; foe: Combatant[]; seed: number; kind?: 'wild' | 'trainer'; trainer?: TrainerInfo; horde?: boolean }): { state: BattleState; events: BattleEvent[] } {
   const lead = input.player.findIndex((c) => c.hp > 0);
   if (lead < 0) throw new Error('Nenhum Pokémon da equipe pode lutar.');
   if (input.foe.length === 0) throw new Error('Sem oponente.');
   const state: BattleState = {
     kind: input.kind ?? 'wild', trainer: input.trainer ?? null, turn: 0, phase: 'choose', result: null, rng: input.seed >>> 0, runAttempts: 0,
     player: { team: input.player, active: lead }, foe: { team: input.foe, active: 0 },
+    ...(input.horde ? { horde: true } : {}),
   };
   (state.player.team[lead] as Combatant).fought = true;
   const foe = activeOf(state, 'foe');
   const me = activeOf(state, 'player');
-  const events: BattleEvent[] = state.kind === 'trainer' && state.trainer
+  const events: BattleEvent[] = state.horde
+    ? [
+      { k: 'text', text: `Uma horda de ${state.foe.team.length} ${foe.name} selvagens apareceu!` },
+      ...state.foe.team.map((_, index): BattleEvent => ({ k: 'send', side: 'foe', index, target: index, text: '' })),
+      { k: 'send', side: 'player', index: lead, text: `Vai, ${me.name}!` },
+    ]
+    : state.kind === 'trainer' && state.trainer
     ? [
       { k: 'text', text: `${state.trainer.title ? `${state.trainer.title} ` : ''}${state.trainer.name} quer batalhar!` },
       { k: 'send', side: 'foe', index: 0, text: `${state.trainer.name} enviou ${foe.name}!` },
@@ -394,9 +412,15 @@ interface Run {
   spread?: number;
   /** duplas: já preparou o golpe (canAct e anúncio) para o primeiro alvo */
   skipPrep?: boolean;
+  /** hordas: adversários que estavam de pé no começo do turno e ainda não tiveram o desmaio tratado */
+  standing?: Set<Combatant>;
 }
 
-const push = (run: Run, event: BattleEvent) => { run.events.push(event); };
+const push = (run: Run, event: BattleEvent) => {
+  // Nas hordas, os eventos do lado adversário dizem a qual deles se referem (o que está agindo ou sendo atingido agora).
+  if (run.state.horde && 'side' in event && event.side === 'foe' && event.target === undefined) event.target = run.state.foe.active;
+  run.events.push(event);
+};
 const done = (run: Run) => run.state.phase === 'ended';
 
 function setHp(c: Combatant, hp: number) {
@@ -532,6 +556,7 @@ function useMove(run: Run, side: SideKey, choice: { slot: number } | { struggle:
   if (!run.skipPrep) {
     if (!canAct(run, side, move)) return;
     push(run, { k: 'move', side, move: move.name, moveName: move.displayName, type: move.type, category: move.category, text: `${who} usou ${move.displayName}!` });
+    if (side === 'player' && isAreaMove(move)) state.areaUses = (state.areaUses ?? 0) + 1;
   }
 
   const targetsSelf = move.target === 'user';
@@ -589,7 +614,7 @@ function useMove(run: Run, side: SideKey, choice: { slot: number } | { struggle:
 
   if (move.drain > 0) healBy(run, side, Math.max(1, Math.floor((total * move.drain) / 100)), `${who} sugou energia!`);
   if (move.drain < 0 && alive(me)) dealDamage(run, side, Math.max(1, Math.floor((total * -move.drain) / 100)), 'recoil', `${who} sofreu o recuo!`);
-  if (move.healing < 0 && alive(me)) dealDamage(run, side, Math.max(1, Math.floor((me.stats.hp * -move.healing) / 100)), 'recoil', `${who} se machucou no esforço!`);
+  if (move.healing < 0 && alive(me) && !run.skipPrep) dealDamage(run, side, Math.max(1, Math.floor((me.stats.hp * -move.healing) / 100)), 'recoil', `${who} se machucou no esforço!`);
 
   if (alive(target)) {
     if (move.ailment && move.ailmentChance > 0 && rng.int(100) < move.ailmentChance) tryAilment(run, foeSide, move.ailment, true);
@@ -599,7 +624,7 @@ function useMove(run: Run, side: SideKey, choice: { slot: number } | { struggle:
     const allDown = move.statChanges.every((c) => c.change < 0);
     const onUser = SELF_DEBUFF.has(move.name) || move.statChanges.every((c) => c.change > 0) || (!allDown && move.target === 'user');
     const recipient = onUser ? side : foeSide;
-    if (alive(activeOf(state, recipient))) for (const change of move.statChanges) { const key = STAGE_OF_API[change.stat]; if (key) changeStage(run, recipient, key, change.change); }
+    if (alive(activeOf(state, recipient)) && !(onUser && run.skipPrep)) for (const change of move.statChanges) { const key = STAGE_OF_API[change.stat]; if (key) changeStage(run, recipient, key, change.change); }
   }
 }
 
@@ -651,8 +676,8 @@ export function awardExp(run: { state: BattleState; ctx: BattleContext; events: 
 }
 
 /** XP do oponente atual, dado ao Pokémon do jogador em campo (se estiver de pé). */
-export function awardFoeExp(run: { state: BattleState; ctx: BattleContext; events: BattleEvent[] }): void {
-  const foe = activeOf(run.state, 'foe');
+export function awardFoeExp(run: { state: BattleState; ctx: BattleContext; events: BattleEvent[] }, defeated?: Combatant): void {
+  const foe = defeated ?? activeOf(run.state, 'foe');
   const index = run.state.player.active;
   if (!alive(run.state.player.team[index])) return;
   if (run.state.player.team[index]?.capped) return;
@@ -687,6 +712,7 @@ function validate(state: BattleState, action: BattleAction): void {
   if (action.kind === 'move') {
     const slots = usableSlots(me);
     if (!slots.includes(action.slot)) throw new Error('Golpe indisponível.');
+    if (state.horde && action.target !== undefined && !alive(state.foe.team[action.target])) throw new Error('Esse adversário não está mais em campo.');
   }
   if (action.kind === 'switch') {
     const target = state.player.team[action.to];
@@ -751,6 +777,8 @@ export function chooseAction(input: BattleState, action: BattleAction, ctx: Batt
     state.rng = rng.state;
     return { state, events: run.events };
   }
+
+  if (state.horde) return hordeTurn(run, action, rng);
 
   state.turn += 1;
   const foeAction = foeChoice(state, ctx, rng);
@@ -839,6 +867,177 @@ function resolveFaintsAfterHit(run: Run) {
     push(run, { k: 'faint', side: 'player', text: `${me.name} desmaiou!` });
     if (!state.player.team.some((c) => c.hp > 0)) endBattle(run, 'lose', 'Todos os seus Pokémon desmaiaram...');
   }
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// hordas: vários adversários em campo ao mesmo tempo contra o Pokémon ativo do jogador
+
+/** Índices dos adversários que ainda estão de pé. */
+export const aliveFoes = (state: BattleState): number[] => state.foe.team.flatMap((c, i) => (alive(c) ? [i] : []));
+
+/** O alvo escolhido se ainda estiver de pé; senão o primeiro adversário em campo. */
+function hordeTarget(state: BattleState, wanted: number): number {
+  return alive(state.foe.team[wanted]) ? wanted : aliveFoes(state)[0] ?? wanted;
+}
+
+/** Golpe do jogador numa horda: os golpes em área acertam todos os adversários, com dano reduzido. */
+function hordePlayerMove(run: Run, choice: { slot: number } | { struggle: true }) {
+  const { state, ctx } = run;
+  const me = activeOf(state, 'player');
+  const move = 'struggle' in choice ? ctx.moves.get('struggle') ?? STRUGGLE : ctx.moves.get(me.moves[choice.slot]?.name ?? '');
+  const targets = aliveFoes(state);
+  if (!move || !isAreaMove(move) || targets.length <= 1) { useMove(run, 'player', choice); return; }
+  const first = state.foe.active;
+  const order = [first, ...targets.filter((index) => index !== first)];
+  const previous = { spread: run.spread, skipPrep: run.skipPrep };
+  run.spread = move.category === 'status' ? undefined : AREA_DAMAGE;
+  order.forEach((index, position) => {
+    if (done(run) || !alive(me) || !alive(state.foe.team[index])) return;
+    state.foe.active = index;
+    run.skipPrep = position > 0;
+    const mark = run.events.length;
+    useMove(run, 'player', choice);
+    // Se o Pokémon não conseguiu agir (sono, paralisia…), o golpe não chega a ninguém.
+    if (position === 0 && !run.events.slice(mark).some((event) => event.k === 'move')) order.length = 0;
+  });
+  run.spread = previous.spread;
+  run.skipPrep = previous.skipPrep;
+}
+
+/** Trata os desmaios da horda: XP de cada derrotado, vitória quando não sobra ninguém e, depois, o novo alvo. */
+function hordeFaints(run: Run, selected: number): number {
+  const { state } = run;
+  if (done(run)) return selected;
+  state.foe.team.forEach((foe, index) => {
+    if (foe.hp > 0 || foe.caught || run.fainted.has(foe) || !run.standing?.has(foe)) return;
+    run.fainted.add(foe);
+    run.standing.delete(foe);
+    run.events.push({ k: 'faint', side: 'foe', target: index, text: `${labelOf(state, 'foe', foe)} desmaiou!` });
+    awardFoeExp(run, foe);
+  });
+  if (aliveFoes(state).length === 0) {
+    endBattle(run, state.foe.team.some((foe) => foe.caught) && !state.foe.team.some((foe) => run.fainted.has(foe)) ? 'captured' : 'win',
+      state.foe.team.length > 1 ? 'Você derrotou a horda!' : 'Você venceu a batalha!');
+    return selected;
+  }
+  const me = activeOf(state, 'player');
+  if (me.hp <= 0 && !run.fainted.has(me)) {
+    run.fainted.add(me);
+    push(run, { k: 'faint', side: 'player', text: `${me.name} desmaiou!` });
+    if (!state.player.team.some((c) => c.hp > 0)) { endBattle(run, 'lose', 'Todos os seus Pokémon desmaiaram...'); return selected; }
+  }
+  const target = hordeTarget(state, selected);
+  state.foe.active = target;
+  if (target !== selected) run.events.push({ k: 'focus', index: target, text: '' });
+  return target;
+}
+
+/** Um turno de batalha contra uma horda. `run.state` já é a cópia do estado, pronta para ser alterada. */
+function hordeTurn(run: Run, action: BattleAction, rng: ReturnType<typeof resumableRng>): { state: BattleState; events: BattleEvent[] } {
+  const { state, ctx } = run;
+  state.turn += 1;
+  let selected = hordeTarget(state, action.kind === 'move' && action.target !== undefined ? action.target : state.foe.active);
+  state.foe.active = selected;
+
+  const foes = aliveFoes(state);
+  run.standing = new Set(foes.map((index) => state.foe.team[index] as Combatant));
+  const choices = new Map<number, FoeChoice>();
+  for (const index of foes) { state.foe.active = index; choices.set(index, foeChoice(state, ctx, rng)); }
+  state.foe.active = selected;
+
+  const playerChoice = action.kind === 'move' ? (action.slot === -1 ? ({ struggle: true } as const) : { slot: action.slot }) : null;
+  const moveOf = (c: Combatant, choice: FoeChoice | undefined | null): Move | null => {
+    if (!choice || 'switchTo' in choice || 'item' in choice) return null;
+    if ('struggle' in choice) return ctx.moves.get('struggle') ?? STRUGGLE;
+    const slot = c.moves[choice.slot];
+    return slot ? ctx.moves.get(slot.name) ?? null : null;
+  };
+
+  if (action.kind === 'switch') doSwitch(run, action.to);
+  else if (action.kind === 'pass') { if (action.text) push(run, { k: 'text', text: action.text }); }
+  else if (action.kind === 'run') {
+    state.runAttempts += 1;
+    const mine = effectiveSpeed(activeOf(state, 'player'));
+    const theirs = Math.max(...foes.map((index) => effectiveSpeed(state.foe.team[index] as Combatant)));
+    const odds = Math.floor((mine * 128) / theirs) + 30 * state.runAttempts;
+    if (odds > 255 || rng.int(256) < odds) {
+      push(run, { k: 'run', ok: true, text: 'Você fugiu em segurança!' });
+      endBattle(run, 'fled', '');
+      state.rng = rng.state;
+      return { state, events: run.events.filter((e) => !(e.k === 'end' && e.text === '')).concat({ k: 'end', result: 'fled', text: '' }) };
+    }
+    push(run, { k: 'run', ok: false, text: 'Não conseguiu fugir!' });
+  }
+
+  type Actor = { side: SideKey; index: number; priority: number; speed: number; tie: number };
+  const actors: Actor[] = [];
+  if (playerChoice) {
+    const move = moveOf(activeOf(state, 'player'), 'struggle' in playerChoice ? playerChoice : { slot: playerChoice.slot });
+    actors.push({ side: 'player', index: -1, priority: move?.priority ?? 0, speed: effectiveSpeed(activeOf(state, 'player')), tie: rng.int(1000) });
+  }
+  for (const index of foes) {
+    const foe = state.foe.team[index] as Combatant;
+    const move = moveOf(foe, choices.get(index));
+    if (move) actors.push({ side: 'foe', index, priority: move.priority, speed: effectiveSpeed(foe), tie: rng.int(1000) });
+  }
+  actors.sort((a, b) => b.priority - a.priority || b.speed - a.speed || a.tie - b.tie);
+
+  for (const actor of actors) {
+    if (done(run)) break;
+    if (actor.side === 'player') {
+      if (!alive(activeOf(state, 'player'))) continue;
+      state.foe.active = selected;
+      hordePlayerMove(run, playerChoice as { slot: number } | { struggle: true });
+    } else {
+      if (!alive(state.foe.team[actor.index])) continue;
+      state.foe.active = actor.index;
+      useMove(run, 'foe', choices.get(actor.index) as { slot: number } | { struggle: true });
+    }
+    state.foe.active = selected;
+    selected = hordeFaints(run, selected);
+  }
+  if (!done(run)) {
+    for (const index of aliveFoes(state)) { state.foe.active = index; residual(run, 'foe'); state.foe.active = selected; selected = hordeFaints(run, selected); }
+    residual(run, 'player');
+    selected = hordeFaints(run, selected);
+    for (const foe of state.foe.team) foe.flinch = false;
+    activeOf(state, 'player').flinch = false;
+  }
+  if (!done(run)) state.foe.active = hordeTarget(state, selected);
+  if (!done(run) && !alive(activeOf(state, 'player'))) {
+    state.phase = 'replace';
+    push(run, { k: 'text', text: 'Escolha o próximo Pokémon.' });
+  }
+  state.rng = rng.state;
+  return { state, events: run.events };
+}
+
+/** Bola lançada numa horda: a captura tira o alvo de campo e o turno passa, com os demais atacando. */
+export function hordeThrow(input: BattleState, ctx: BattleContext, ball: string, shakes: number, caught: boolean, text: string): { state: BattleState; events: BattleEvent[] } {
+  const state = clone(input);
+  const target = state.foe.active;
+  const events: BattleEvent[] = [{ k: 'ball', ball, shakes, caught, target, text }];
+  if (!caught) {
+    const result = chooseAction(state, { kind: 'pass' }, ctx);
+    return { state: result.state, events: [...events, ...result.events] };
+  }
+  const foe = state.foe.team[target] as Combatant;
+  foe.hp = 0;
+  foe.caught = ball;
+  awardFoeExp({ state, ctx, events }, foe);
+  const left = aliveFoes(state);
+  if (left.length === 0) {
+    const defeated = state.foe.team.some((c) => !c.caught);
+    state.phase = 'ended';
+    state.result = defeated ? 'win' : 'captured';
+    state.turn += 1;
+    events.push({ k: 'end', result: state.result, text: '' });
+    return { state, events };
+  }
+  state.foe.active = left[0] as number;
+  events.push({ k: 'focus', index: state.foe.active, text: '' });
+  const result = chooseAction(state, { kind: 'pass' }, ctx);
+  return { state: result.state, events: [...events, ...result.events] };
 }
 
 /** Depois de uma captura: encerra a batalha e rende XP ao Pokémon em campo. */

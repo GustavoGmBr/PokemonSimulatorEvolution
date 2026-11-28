@@ -7,6 +7,8 @@ export interface AutoMoveOption {
   score: number;
   /** Golpe que causa dano (status não entram na escolha). */
   attack: boolean;
+  /** Hordas: o adversário que recebe o golpe (os golpes em área acertam todos). */
+  target?: number;
 }
 
 /**
@@ -14,12 +16,17 @@ export interface AutoMoveOption {
  * (alvo imune), ainda usa o primeiro ataque; sem nenhum ataque, o primeiro golpe. `-1` é o Struggle (sem golpes).
  */
 export function pickAutoSlot(options: readonly AutoMoveOption[]): number {
+  return pickAutoOption(options)?.slot ?? -1;
+}
+
+/** Como `pickAutoSlot`, mas devolve a opção inteira (o golpe e, nas hordas, o alvo). */
+export function pickAutoOption(options: readonly AutoMoveOption[]): AutoMoveOption | undefined {
   const attacks = options.filter((option) => option.attack);
   const effective = attacks.filter((option) => option.score > 0);
   const pool = effective.length > 0 ? effective : attacks.length > 0 ? attacks : options;
   let best: AutoMoveOption | undefined;
   for (const option of pool) if (!best || option.score > best.score) best = option;
-  return best?.slot ?? -1;
+  return best;
 }
 
 /** Quem entra quando o Pokémon em campo cai: o de melhor confronto (ver `battleAi.matchup`); empate fica com o primeiro. */

@@ -65,7 +65,7 @@ export function applyStatusCure(item: string, status: StatusKind | null, confuse
 export const SHOP_CATEGORIES = ['captura', 'cura', 'evolucao', 'mega', 'primal', 'ivs', 'buff'] as const;
 export const MAX_STACK = 99;
 /** Amuletos e afins: só um por jogador. */
-export const UNIQUE_ITEMS: ReadonlySet<string> = new Set(['shiny-charm', 'catching-charm', 'amulet-coin', 'lucky-egg']);
+export const UNIQUE_ITEMS: ReadonlySet<string> = new Set(['shiny-charm', 'catching-charm', 'amulet-coin', 'lucky-egg', 'horde-charm']);
 
 /** Bola Premier de brinde: uma a cada 10 Poké Bolas compradas de uma vez. */
 export const PREMIER_BALL = 'premier-ball';

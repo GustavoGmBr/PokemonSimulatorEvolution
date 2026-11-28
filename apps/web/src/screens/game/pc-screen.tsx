@@ -284,7 +284,7 @@ export default function PcScreen({ state, change, onOpenPokedex }: Props) {
       let next: GameState | string = current;
       for (let i = 0; i < 12; i += 1) {
         const species = 1 + Math.floor(Math.random() * pokedexTotal);
-        next = capture(next, createPokemon(species, { level: 5 + Math.floor(Math.random() * 46), shiny: Math.random() < 1 / 6 }));
+        next = capture(next, createPokemon(species, { level: 5 + Math.floor(Math.random() * 46), shiny: Math.random() < 1 / 6 }), false);
         if (typeof next === 'string') return next;
       }
       return next;

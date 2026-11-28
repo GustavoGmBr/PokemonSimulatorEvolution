@@ -9,6 +9,7 @@ import { battleKeyActions, resetBattleKeys, setBattleKey, useBattleKeys, type Ba
 import {
   buyTm, currentMoves, forgetMove, learnableMoves, maxMoves, reorderMoves, resolvePending, teachMove, type Learnable,
 } from '@/lib/battle/moveset';
+import { AREA_LABEL, isAreaMove } from '@/lib/battle/area';
 import { TypeBadge } from './pokedex-media';
 import '@/styles/moves.css';
 
@@ -19,6 +20,7 @@ function Stats({ move }: { move: Move }) {
   return (
     <span className="mv-stats">
       {categoryLabel[move.category]} · {move.category === 'status' ? 'sem dano' : `poder ${move.power}`} · {move.accuracy === null ? 'não erra' : `${move.accuracy}%`} · PP {move.pp}
+      {isAreaMove(move) && <> · <b className="mv-area" title="Atinge todos os adversários de uma horda">{AREA_LABEL}</b></>}
     </span>
   );
 }

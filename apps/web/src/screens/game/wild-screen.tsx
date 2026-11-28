@@ -12,9 +12,9 @@ import { averageLevel, companionOf } from '@/lib/pokemon-collection';
 import { getTrainerSprite } from '@/lib/trainer-sprites';
 import { canFight, faintedTeamMessage, fieldHealCost, healTeamInField } from '@/lib/pokemon-center';
 import {
-  availableMaps, canChooseMap, canSpawn, chanceOfStars, clampLevels, defaultSettings, isCleared, levelCap,
-  minWildLevel, pendingSpawns, searchMap, settingsOf, shinyChance, spawnNext, unlockedRegions, wildBadges, wildPopulation,
-  type WildBoard, type WildEncounter, type WildPopulation, type WildSettings,
+  availableMaps, canChooseMap, canSpawn, chanceOfStars, clampLevels, completedGenerations, defaultSettings, hordeCharm, hordeCharmPrice,
+  hordeOdds, isCleared, levelCap, minWildLevel, pendingSpawns, searchMap, settingsOf, shinyChance, spawnNext, unlockedRegions, wildBadges,
+  wildPopulation, type HordeOdds, type WildBoard, type WildEncounter, type WildPopulation, type WildSettings,
 } from '@/lib/wild';
 import { exploreActionFor, getExploreKeys, useExploreKeys } from '@/lib/controls';
 import { gameActions, shortcutLabel } from './game-navigation';
@@ -139,8 +139,9 @@ function WildWorld(props: WorldProps) {
       if (!element) return;
       element.style.transform = `translate3d(${walker.x * tile}px, ${walker.y * tile}px, 0)`;
       element.style.zIndex = String(Math.round(walker.y * 100));
-      const sprite = element.querySelector<HTMLElement>('.wild-sprite');
-      if (sprite) sprite.style.backgroundPosition = sheetPosition(frameColumn(walker), walker.facing + rowOffset);
+      for (const sprite of element.querySelectorAll<HTMLElement>('.wild-sprite')) {
+        sprite.style.backgroundPosition = sheetPosition(frameColumn(walker), walker.facing + rowOffset);
+      }
     }
 
     function frame(now: number) {
@@ -312,14 +313,22 @@ function WildWorld(props: WorldProps) {
               }}>
               <div className="wild-body wild-body-pokemon" data-grade={grade ?? undefined}>
                 {grade && <span className="wild-aura" aria-hidden="true" />}
+                {entry?.sprite && encounter.horde?.slice(1).map((_, slot) => (
+                  <span key={slot} className="wild-sprite wild-echo" aria-hidden="true" data-slot={slot}
+                    style={{ backgroundImage: `url("${spriteSheetUrl(entry.sprite, false)}")` }} />
+                ))}
                 {entry?.sprite && (
                   <span className="wild-sprite" role="img"
-                    aria-label={`${encounterName(encounter)}, nível ${encounter.level}${encounter.shiny ? ', brilhante' : ''}${ivStars(encounter.ivs) >= 1 ? `, ${ivStars(encounter.ivs)} ${ivStars(encounter.ivs) === 1 ? 'estrela' : 'estrelas'}` : ''}`}
+                    aria-label={encounter.horde
+                      ? `Horda de ${encounter.horde.length} ${encounterName(encounter)}, nível ${Math.min(...encounter.horde)} a ${encounter.level}`
+                      : `${encounterName(encounter)}, nível ${encounter.level}${encounter.shiny ? ', brilhante' : ''}${ivStars(encounter.ivs) >= 1 ? `, ${ivStars(encounter.ivs)} ${ivStars(encounter.ivs) === 1 ? 'estrela' : 'estrelas'}` : ''}`}
                     style={{ backgroundImage: `url("${spriteSheetUrl(entry.sprite, encounter.shiny)}")` }} />
                 )}
-                <span className="wild-tag" data-grade={grade ?? undefined}>
-                  <TagStars subject={encounter} />
-                  {encounterName(encounter)} · Nv {encounter.level}
+                <span className="wild-tag" data-grade={grade ?? undefined} data-horde={encounter.horde ? 'true' : undefined}>
+                  {encounter.horde ? <>Horda ×{encounter.horde.length} · {encounterName(encounter)} · Nv {Math.min(...encounter.horde)}{Math.min(...encounter.horde) === encounter.level ? '' : `–${encounter.level}`}</> : <>
+                    <TagStars subject={encounter} />
+                    {encounterName(encounter)} · Nv {encounter.level}
+                  </>}
                 </span>
                 <span className="wild-prompt" aria-hidden="true">{explore.interact}</span>
               </div>
@@ -370,8 +379,9 @@ function LevelField({ label, value, min, max, onChange }: {
 }
 
 /** A tela de configuração: região, faixa de nível e mapa, antes de procurar selvagens (como no jogo antigo). */
-function WildSetup({ badges, population, teamLevel, settings, onChange, board, onSearch, onResume, message }: {
+function WildSetup({ badges, population, horde, teamLevel, settings, onChange, board, onSearch, onResume, message }: {
   badges: number;
+  horde: HordeOdds | null;
   population: WildPopulation;
   teamLevel: number | undefined;
   settings: WildSettings;
@@ -442,6 +452,11 @@ function WildSetup({ badges, population, teamLevel, settings, onChange, board, o
                 </> : <li>Encontros contínuos, até <b>{population.capacity}</b> Pokémon ao mesmo tempo</li>}
                 <li>Mapas com Pokémon nesta região: <b>{maps.length}</b> de {wildMaps.length}</li>
                 <li>Brilhante: <b>{oneIn(shinyChance)}</b></li>
+                <li>
+                  Hordas: {horde
+                    ? <><b>{Math.round(horde.chance * 100)}%</b> dos encontros, com <b>{horde.minSize} a {horde.maxSize}</b> Pokémon <small>(brilho e IVs de cada um saem ao começar a batalha)</small></>
+                    : <b>desativadas</b>} {!horde && <small>(compre o Amuleto de Horda na Loja por ₽ {hordeCharmPrice.toLocaleString('pt-BR')})</small>}
+                </li>
                 <li><span className="wild-stars" data-stars="3">★★★</span> IVs excelentes: <b>≈ {oneIn(chanceOfStars(3))}</b></li>
                 <li><span className="wild-stars" data-stars="4">★★★★</span> IVs perfeitos: <b>≈ {oneIn(chanceOfStars(4))}</b></li>
                 <li className="text-muted-foreground">
@@ -617,12 +632,14 @@ export default function WildScreen({ save, game, change }: Props) {
     change((state) => {
       const currentPopulation = wildPopulation(state.progress);
       const level = currentPopulation.continuous ? averageLevel(state.collection.team) : undefined;
-      const board = state.wild && spawnNext(state.wild, wildBadges(state.progress), currentPopulation, level);
+      const horde = hordeOdds(completedGenerations(state.progress), (state.progress.bag[hordeCharm] ?? 0) > 0);
+      const board = state.wild && spawnNext(state.wild, wildBadges(state.progress), currentPopulation, level, Math.random, horde);
       return board ? { ...state, wild: board } : 'Nada a fazer.';
     });
   }
 
   function startCatch(encounter: WildEncounter | undefined) {
+    if (encounter?.horde) { setMessage('Uma horda precisa ser enfrentada em batalha: não dá para capturá-la direto.'); return; }
     if (encounter && !catching) setCatching({ encounter, phase: 'choose' });
   }
 
@@ -804,7 +821,7 @@ export default function WildScreen({ save, game, change }: Props) {
           )}
         </>
       ) : (
-        <WildSetup badges={badges} population={population} teamLevel={teamLevel} settings={settings} onChange={setSettings} board={wild} message={message}
+        <WildSetup badges={badges} population={population} horde={hordeOdds(completedGenerations(progress), (progress.bag[hordeCharm] ?? 0) > 0)} teamLevel={teamLevel} settings={settings} onChange={setSettings} board={wild} message={message}
           onSearch={() => startSearch()} onResume={() => { setMessage(null); setView('map'); }} />
       )}
 

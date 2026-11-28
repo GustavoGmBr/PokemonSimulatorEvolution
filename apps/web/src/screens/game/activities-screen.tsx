@@ -3,41 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { ChangeGame, GameState, GameUpdate } from '@/lib/game-state';
 import { applyLineup, boxPokemon, createUid } from '@/lib/pokemon-collection';
-import { itemName } from '@/lib/training';
-import { claimMission, missionCount, missionDuration, missionList, missionsAt } from '@/lib/missions';
 import { pokemonName } from './pokemon-ui';
 
 type Props = { game: GameState; change: ChangeGame };
-
-export function MissionsScreen({ game, change }: Props) {
-  const [now, setNow] = useState(Date.now);
-  const [message, setMessage] = useState('');
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, []);
-  const state = missionsAt(game, now);
-  const rows = missionList(state.period);
-  return <section className="game-panel">
-    <p className="text-sm text-muted-foreground">Renovação em {Math.max(0, Math.ceil(((state.period + 1) * missionDuration - now) / 60000))} min.</p>
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{rows.map((goal) => {
-      const count = Math.min(goal.target, missionCount(state, goal.kind));
-      const claimed = state.claimed.includes(goal.index);
-      return <article key={goal.index} className="game-panel">
-        <h2 className="font-bold">{goal.label}</h2>
-        <progress aria-label={goal.label} value={count} max={goal.target} className="w-full accent-green-800" />
-        <p className="text-sm">{count} / {goal.target} · {goal.chips} fichas · ₽ {goal.money} · {itemName(goal.item)} e essência</p>
-        <Button disabled={claimed || count < goal.target} onClick={() => setMessage(change(claimMission(goal.index, state.period)) ?? 'Prêmio resgatado.')}>
-          {claimed ? 'Resgatado' : 'Resgatar prêmio'}
-        </Button>
-      </article>;
-    })}</div>
-    <Button variant="outline" disabled={state.claimed.length !== 10} onClick={() => setMessage(change(claimMission(10, state.period)) ?? 'Bônus resgatado.')}>
-      {state.claimed.includes(10) ? 'Bônus resgatado' : 'Resgatar bônus das dez missões'}
-    </Button>
-    {message && <p role="status">{message}</p>}
-  </section>;
-}
 
 export function LineupsScreen({ game, change }: Props) {
   const [name, setName] = useState('');

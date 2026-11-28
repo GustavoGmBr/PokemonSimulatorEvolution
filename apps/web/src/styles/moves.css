@@ -23,6 +23,7 @@
 }
 .mv-row > .min-w-0 { flex: 1 1 auto; }
 .mv-stats { display: block; color: var(--muted-foreground); font-size: .72rem; }
+.mv-area { color: var(--primary); font-weight: 700; }
 .mv-actions { display: flex; flex: none; gap: .25rem; }
 .mv-money { display: inline-flex; align-items: center; gap: .3rem; font-size: .85rem; font-weight: 700; }
 .mv-money svg { width: 1rem; height: 1rem; }

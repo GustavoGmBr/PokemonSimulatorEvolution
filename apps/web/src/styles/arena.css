@@ -108,3 +108,9 @@
 .battle-sprite[data-state="captured"] { opacity: 0; scale: .12; translate: 0 -10%; }
 .battle-sprite[data-state="idle"] > img { animation: battle-enter .4s ease-out; }
 @keyframes battle-enter { from { opacity: 0; transform: translateY(-10%) scale(.6); } to { opacity: 1; transform: none; } }
+
+/* Horda: adversários fora de destaque, menores; clicar escolhe o alvo. */
+.battle-horde-sprite { width: 11cqw; padding: 0; border: 0; background: none; cursor: pointer; }
+.battle-horde-sprite[data-state="idle"]:hover { filter: brightness(1.25); }
+.battle-horde-sprite:focus-visible { outline: .4cqw solid #facc15; outline-offset: .2cqw; border-radius: 1cqw; }
+.battle-horde-sprite:not([data-state="idle"]) { pointer-events: none; }

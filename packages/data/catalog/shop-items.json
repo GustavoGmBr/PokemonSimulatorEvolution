@@ -1167,5 +1167,12 @@
   "category": "buff",
   "description": "Aumenta a chance de captura conforme os desafios da região vencidos, até 30%.",
   "price": 150000
+ },
+ {
+  "name": "horde-charm",
+  "displayName": "Horde Charm",
+  "category": "buff",
+  "description": "Libera as hordas nos Selvagens: 10% dos Pokémon que aparecem vêm em grupo de 2 ou 3, todos da mesma espécie. Cada geração concluída soma 5% à chance (até 55%) e, a cada 3 gerações, cabe mais um Pokémon na horda (até 5). Brilho e IVs de cada um só são sorteados quando a batalha começa. Enquanto estiver na mochila.",
+  "price": 35000
  }
 ]

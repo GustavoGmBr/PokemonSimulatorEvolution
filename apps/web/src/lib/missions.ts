@@ -1,56 +1,106 @@
+import { getWildSpecies } from '@pokesim-evolution/data/wild-species';
 import type { GameState, GameUpdate } from './game-state';
+import {
+  achievementReward, achievements, achievementValue, applyEvent, applyLifetime, boardDone, emptyMissionState, generateBoard, goalDone,
+  tierEnd, tierPeriod, tiers, type Board, type Derived, type MissionEvent, type MissionKind, type MissionState, type Profile, type Reward, type Tier,
+} from './mission-goals';
+import { completedGenerations, spawnableSpecies, unlockedRegions, wildBadges } from './wild';
+import { hordeCharm } from './horde';
+import { ivStars } from './ivs';
+import type { OwnedPokemon } from './pokemon-collection';
 
-export const missionDuration = 2 * 60 * 60 * 1000;
-export const missionPeriod = (now: number) => Math.floor(now / missionDuration);
-const kinds = ['capture', 'wild', 'trainer', 'cup'] as const;
-type Kind = (typeof kinds)[number];
-export type MissionState = { period: number; captures: number[]; wild: number; trainer: number; cup: number; claimed: number[] };
-export const emptyMissions = (period: number): MissionState => ({ period, captures: [], wild: 0, trainer: 0, cup: 0, claimed: [] });
+export * from './mission-goals';
 
-export function missionsAt(game: GameState, now: number) {
-  const period = missionPeriod(now);
-  return game.progress.missions?.period === period ? game.progress.missions : emptyMissions(period);
+const offsetOf = (now: number) => new Date(now).getTimezoneOffset();
+
+/** O perfil do jogador usado para sortear metas: insígnias + gerações concluídas, Amuleto de Horda e espécies que aparecem no mapa. */
+export function profileOf(game: GameState): Profile {
+  const { progress } = game;
+  const badges = wildBadges(progress);
+  return {
+    progress: badges + completedGenerations(progress),
+    charm: (progress.bag[hordeCharm] ?? 0) > 0,
+    pool: spawnableSpecies(badges, unlockedRegions()).map(({ id, types, region }) => ({ id, types, region })),
+  };
 }
 
-export function recordMission(game: GameState, kind: Kind, species?: number): GameState {
-  const current = missionsAt(game, Date.now());
-  const missions = kind === 'capture'
-    ? { ...current, captures: species === undefined ? current.captures : [...new Set([...current.captures, species])] }
-    : { ...current, [kind]: current[kind] + 1 };
+/** As missões do jogador com as faixas vencidas já renovadas (nada é gravado até um evento ou resgate). */
+export function missionsAt(game: GameState, now: number): MissionState {
+  const saved = game.progress.missions ?? emptyMissionState();
+  const offset = offsetOf(now);
+  let profile: Profile | undefined;
+  let next = saved;
+  for (const tier of tiers) {
+    const period = tierPeriod(tier, now, offset);
+    if (saved[tier]?.period === period) continue;
+    profile ??= profileOf(game);
+    next = { ...next, [tier]: generateBoard(tier, period, profile) };
+  }
+  return next;
+}
+
+export const boardOf = (state: MissionState, tier: Tier) => state[tier]!;
+export const renewalOf = (tier: Tier, board: Board, now: number) => tierEnd(tier, board.period, offsetOf(now));
+
+/** Registra algo que aconteceu (captura, vitória, evolução…) nas três faixas e nas conquistas. */
+export function recordMission(game: GameState, event: MissionEvent, now = Date.now()): GameState {
+  const current = missionsAt(game, now);
+  const missions: MissionState = { ...current, lifetime: applyLifetime(current.lifetime, event) };
+  for (const tier of tiers) missions[tier] = applyEvent(current[tier]!, event);
   return { ...game, progress: { ...game.progress, missions } };
 }
 
-export function missionList(period: number) {
-  return [
-    ...Array.from({ length: 3 }, (_, i) => ({ kind: 'capture' as const, target: i + 1 + period % 3, label: 'Capture espécies diferentes', item: 'great-ball' })),
-    ...Array.from({ length: 3 }, (_, i) => ({ kind: 'wild' as const, target: 2 + i * 2, label: 'Derrote Pokémon selvagens', item: 'exp-candy-p' })),
-    ...Array.from({ length: 2 }, (_, i) => ({ kind: 'trainer' as const, target: i + 1, label: 'Vença treinadores aleatórios', item: 'great-ball' })),
-    ...Array.from({ length: 2 }, (_, i) => ({ kind: 'cup' as const, target: i + 1, label: 'Vença torneios', item: 'exp-candy-m' })),
-  ].map((mission, index) => ({ ...mission, index, chips: 50 + index * 25, money: 100 + index * 50 }));
+const infoOf = (species: number) => {
+  const info = getWildSpecies(species);
+  return info ? { types: info.types, region: info.region } : {};
+};
+
+export const recordSimple = (game: GameState, kind: MissionKind, amount = 1): GameState => amount > 0 ? recordMission(game, { kind, amount }) : game;
+export const recordDefeat = (game: GameState, species: number): GameState => recordMission(game, { kind: 'defeat', species, ...infoOf(species) });
+export const recordEvolution = (game: GameState, species: number): GameState => recordMission(game, { kind: 'evolve', species, ...infoOf(species) });
+export const recordCatch = (game: GameState, pokemon: OwnedPokemon): GameState =>
+  recordMission(game, { kind: 'catch', species: pokemon.species, ...infoOf(pokemon.species), shiny: pokemon.shiny, stars: pokemon.ivs ? ivStars(pokemon.ivs) : 0 });
+
+/** Valores calculados do estado do jogo para as conquistas da Pokédex e dos tipos. */
+export function derivedOf(game: GameState): Derived {
+  const types = new Set<string>();
+  for (const id of game.progress.caughtSpecies) for (const type of getWildSpecies(id)?.types ?? []) types.add(type);
+  return { dex: game.progress.caughtSpecies.length, types: types.size };
 }
 
-export function missionCount(state: MissionState, kind: Kind) {
-  return kind === 'capture' ? state.captures.length : state[kind];
+function give(game: GameState, reward: Reward, missions: MissionState): GameState {
+  const bag = { ...game.progress.bag };
+  for (const [name, quantity] of reward.items) bag[name] = Math.min(999, (bag[name] ?? 0) + quantity);
+  return { ...game, progress: { ...game.progress, bag, money: game.progress.money + reward.money,
+    casinoChips: game.progress.casinoChips + reward.chips, missions } };
 }
 
-export function claimMission(index: number, period: number, now = Date.now()): GameUpdate {
+/** Resgata o prêmio de uma meta, ou o bônus de completar a faixa (`index` igual ao número de metas). */
+export function claimMission(tier: Tier, index: number, period: number, now = Date.now()): GameUpdate {
   return (game) => {
     const missions = missionsAt(game, now);
-    if (missions.period !== period) return 'As missões foram renovadas.';
-    if (missions.claimed.includes(index)) return 'Prêmio já resgatado.';
-    const all = missionList(period);
-    const goal = all[index];
-    if (index === 10 ? !all.every((item) => missions.claimed.includes(item.index)) : !goal || missionCount(missions, goal.kind) < goal.target) {
-      return 'Missão ainda incompleta.';
-    }
-    const reward = goal ?? { money: 2500, chips: 2500, item: 'rare-candy' };
-    const bag = { ...game.progress.bag };
-    bag[reward.item] = Math.min(999, (bag[reward.item] ?? 0) + 1);
-    if (goal) {
-      const essence = ['iv-hp', 'iv-attack', 'iv-defense', 'iv-special-attack', 'iv-special-defense', 'iv-speed'][goal.index % 6]!;
-      bag[essence] = Math.min(999, (bag[essence] ?? 0) + 1);
-    }
-    return { ...game, progress: { ...game.progress, bag, money: game.progress.money + reward.money,
-      casinoChips: game.progress.casinoChips + reward.chips, missions: { ...missions, claimed: [...missions.claimed, index] } } };
+    const board = missions[tier]!;
+    if (board.period !== period) return 'As missões foram renovadas.';
+    if (board.claimed.includes(index)) return 'Prêmio já resgatado.';
+    const bonus = index === board.goals.length;
+    if (bonus ? !boardDone(board) : !board.goals[index] || !goalDone(board, index)) return 'Missão ainda incompleta.';
+    const reward = bonus ? board.bonus : board.goals[index]!.reward;
+    return give(game, reward, { ...missions, [tier]: { ...board, claimed: [...board.claimed, index] } });
+  };
+}
+
+/** Resgata o próximo nível de uma conquista de longo prazo. */
+export function claimAchievement(id: string, now = Date.now()): GameUpdate {
+  return (game) => {
+    const position = achievements.findIndex((entry) => entry.id === id);
+    const achievement = achievements[position];
+    if (!achievement) return 'Conquista desconhecida.';
+    const missions = missionsAt(game, now);
+    const level = missions.lifetime.claimed[id] ?? 0;
+    const goal = achievement.levels[level];
+    if (goal === undefined) return 'Conquista completa.';
+    if (achievementValue(achievement, missions.lifetime, derivedOf(game)) < goal) return 'Conquista ainda incompleta.';
+    const lifetime = { ...missions.lifetime, claimed: { ...missions.lifetime.claimed, [id]: level + 1 } };
+    return give(game, achievementReward(position, level), { ...missions, lifetime });
   };
 }

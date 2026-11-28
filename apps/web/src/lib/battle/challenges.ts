@@ -9,7 +9,7 @@ import type { WildEncounter } from '../wild';
 import type { TrainerInfo } from './engine';
 import { resumableRng } from './rng';
 import { speciesName } from './session';
-import { recordMission } from '../missions';
+import { recordSimple } from '../missions';
 import { earn } from '../rewards';
 
 type Mode = 'treinadores' | 'ginasios' | 'torneios' | 'chefes';
@@ -217,7 +217,8 @@ export function completeOpponent(game: GameState, opponent: Opponent, win: boole
     }
   }
   const updated = { ...game, progress: { ...progress, badges, cycle, restart, bag, stats, challenges: next } };
-  if (win && opponent.mode === 'treinadores') return recordMission(updated, 'trainer');
-  if (win && opponent.tournament?.round === tournamentRounds) return recordMission(updated, 'cup');
+  if (win && opponent.mode === 'treinadores') return recordSimple(updated, 'trainer');
+  if (win && opponent.mode === 'chefes') return recordSimple(updated, 'boss');
+  if (win && opponent.tournament?.round === tournamentRounds) return recordSimple(updated, 'cup');
   return updated;
 }

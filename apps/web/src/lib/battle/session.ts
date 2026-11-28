@@ -6,19 +6,20 @@ import type { Bag } from '../journey-saves';
 import { capture, type GameState, type GameUpdate } from '../game-state';
 import { createPokemon, loseDefeated, pokemonCount, type OwnedPokemon } from '../pokemon-collection';
 import type { WildEncounter } from '../wild';
-import { removeEncounter } from '../wild';
+import { removeEncounter, rollHorde } from '../wild';
 import {
-  activeOf, battleAi, chooseAction, combatantFrom, createBattle, failedThrow, finishCapture,
+  activeOf, aliveFoes, battleAi, chooseAction, combatantFrom, createBattle, failedThrow, finishCapture, hordeThrow,
   type BattleContext, type BattleEvent, type BattleState, type Combatant, type TrainerInfo,
 } from './engine';
 import { attemptCapture, captureChance, type CaptureInput } from './capture';
-import { pickAutoReplacement, pickAutoSlot } from './auto-battle';
+import { pickAutoOption, pickAutoReplacement, pickAutoSlot } from './auto-battle';
+import { AREA_DAMAGE, isAreaMove } from './area';
 import { expForLevel } from './experience';
 import { HEAL_EFFECTS, STATUS_CURES, applyHealItem, applyStatusCure } from './items';
 import { levelUpMoves, toMoveSlot, type BattleInstance } from './pokemon';
 import { resumableRng } from './rng';
 import { statsOf } from './pokemon';
-import { recordMission } from '../missions';
+import { recordDefeat, recordSimple } from '../missions';
 import { earn } from '../rewards';
 import { formOf } from '../training';
 import type { MoveSlot, Species } from './types';
@@ -92,6 +93,14 @@ export function startWildBattle(team: readonly OwnedPokemon[], encounter: WildEn
   return createBattle({ player, foe: [wildCombatant(encounter)], seed: Math.floor(Math.random() * 2 ** 31), kind: 'wild' });
 }
 
+/** Começa a luta contra uma horda: brilho e IVs de cada membro são sorteados agora. */
+export function startHordeBattle(team: readonly OwnedPokemon[], encounter: WildEncounter, leadUid?: string | null, playerCap?: number) {
+  const player = teamCombatants(team, playerCap);
+  const lead = player.findIndex((c) => c.ref === leadUid);
+  if (lead > 0) player.unshift(...player.splice(lead, 1));
+  return createBattle({ player, foe: rollHorde(encounter).map(wildCombatant), seed: Math.floor(Math.random() * 2 ** 31), kind: 'wild', horde: true });
+}
+
 export function startOpponentBattle(team: readonly OwnedPokemon[], opponents: readonly WildEncounter[], trainer: TrainerInfo, opponentCap?: number, playerCap?: number) {
   // Fora das lutas contra selvagens (treinadores, ginásios, torneios…) a equipe entra e sai com HP cheio e sem status.
   const player = team.flatMap((pokemon) => {
@@ -105,10 +114,10 @@ export function startOpponentBattle(team: readonly OwnedPokemon[], opponents: re
 }
 
 export type BattleRequest =
-  | { kind: 'move'; slot: number }
+  | { kind: 'move'; slot: number; target?: number }
   | { kind: 'switch'; to: number }
   | { kind: 'run' }
-  | { kind: 'ball'; item: string }
+  | { kind: 'ball'; item: string; /** horda: o adversário que recebe a bola */ target?: number }
   | { kind: 'item'; item: string; target: number };
 
 export interface BattleStep { state: BattleState; events: BattleEvent[]; bag: Bag }
@@ -153,11 +162,15 @@ export function battleBallChance(state: BattleState, ball: string, bag?: Bag) {
 }
 
 /** Aplica uma ação do jogador. Lança um `Error` com a mensagem se a ação não vale (item sem efeito, sem bola…). */
-export function act(state: BattleState, bag: Bag, request: BattleRequest): BattleStep {
+export function act(input: BattleState, bag: Bag, request: BattleRequest): BattleStep {
   const ctx = battleContext;
+  // Horde: o alvo do golpe ou da bola vira o adversário "ativo" (quem dá a chance de captura, por exemplo).
+  const aimed = input.horde && (request.kind === 'move' || request.kind === 'ball') ? request.target : undefined;
+  const state: BattleState = aimed !== undefined && aimed !== input.foe.active && (input.foe.team[aimed]?.hp ?? 0) > 0
+    ? { ...input, foe: { ...input.foe, active: aimed } } : input;
   switch (request.kind) {
     case 'move': {
-      const result = chooseAction(state, { kind: 'move', slot: request.slot }, ctx);
+      const result = chooseAction(state, { kind: 'move', slot: request.slot, target: request.target }, ctx);
       return { ...result, bag };
     }
     case 'switch': {
@@ -179,6 +192,11 @@ export function act(state: BattleState, bag: Bag, request: BattleRequest): Battl
       const attempt = attemptCapture(rng, captureInput(state, item.name, bag));
       const next: BattleState = { ...state, rng: rng.state };
       const throwText = `Você lançou ${item.displayName}!`;
+      if (state.horde) {
+        const target = activeOf(next, 'foe');
+        const result = hordeThrow(next, ctx, item.name, attempt.shakes, attempt.caught, `${throwText} ${attempt.caught ? `Capturou ${target.name}!` : `${target.name} escapou!`}`);
+        return { ...result, bag: left };
+      }
       if (attempt.caught) {
         const result = finishCapture(next, ctx, item.name, attempt.shakes, `${throwText} Capturou ${activeOf(next, 'foe').name}!`);
         return { ...result, bag: left };
@@ -224,6 +242,8 @@ export interface BattleOutcome {
   result: NonNullable<BattleState['result']>;
   money: number;
   caught: OwnedPokemon | null;
+  /** Todos os capturados da batalha (nas hordas pode ser mais de um; sem captura, vazio). */
+  caughtAll: OwnedPokemon[];
   levels: { name: string; level: number }[];
   /** mensagem se algo não coube no save (PC cheio) */
   problem: string | null;
@@ -268,7 +288,11 @@ export function settleBattle(game: GameState, battle: BattleState, bag: Bag, enc
   const dead = permadeath ? battle.player.team.filter((c) => c.ref && c.hp <= 0 && c.ref !== staked) : [];
   if (dead.length > 0) collection = loseDefeated(collection, dead.map((c) => c.ref));
   const foe = activeOf(battle, 'foe');
-  const money = result === 'win' ? (encounterId === null ? opponentReward : wildReward(foe.level)) : 0;
+  const hordeCaught = battle.horde ? battle.foe.team.filter((c) => c.caught) : [];
+  const hordeDefeated = battle.horde ? battle.foe.team.filter((c) => !c.caught && c.hp <= 0) : [];
+  const money = result === 'win'
+    ? (encounterId === null ? opponentReward : battle.horde ? hordeDefeated.reduce((sum, c) => sum + wildReward(c.level), 0) : wildReward(foe.level))
+    : 0;
   const progress = {
     ...game.progress, bag,
     money: game.progress.money + money,
@@ -278,21 +302,38 @@ export function settleBattle(game: GameState, battle: BattleState, bag: Bag, enc
       losses: game.progress.stats.losses + (result === 'lose' ? 1 : 0),
     },
   };
-  let state: GameState = { ...game, collection, progress, wild: encounterId && game.wild && (result === 'win' || result === 'captured') ? removeEncounter(game.wild, encounterId) : game.wild };
-  if (encounterId && result === 'win') state = recordMission(state, 'wild');
+  // Fugir de uma horda a mantém no mapa, a menos que algum membro já tenha sido capturado.
+  const gone = result === 'win' || result === 'captured' || hordeCaught.length > 0;
+  let state: GameState = { ...game, collection, progress, wild: encounterId && game.wild && gone ? removeEncounter(game.wild, encounterId) : game.wild };
+  if (encounterId && result === 'win') {
+    if (battle.horde) {
+      for (const member of hordeDefeated) state = recordDefeat(state, member.speciesId);
+      state = recordSimple(state, 'horde');
+    } else state = recordDefeat(state, foe.speciesId);
+  }
+  if (battle.areaUses) state = recordSimple(state, 'area', battle.areaUses);
 
   let caught: OwnedPokemon | null = null;
+  const caughtAll: OwnedPokemon[] = [];
   let problem: string | null = null;
-  if (result === 'captured') {
+  if (battle.horde) {
+    for (const member of hordeCaught) {
+      const species = battleContext.species(member.speciesId);
+      const keep = { ...createPokemon(member.speciesId, { level: member.level, shiny: member.shiny, ivs: member.ivs, ball: member.caught }), exp: expForLevel(species.growthRate, member.level), moves: member.moves.map((slot) => slot.name) };
+      const stored = capture(state, keep);
+      if (typeof stored === 'string') problem = stored; else { state = stored; caughtAll.push(keep); }
+    }
+    caught = caughtAll[0] ?? null;
+  } else if (result === 'captured') {
     const species = battleContext.species(foe.speciesId);
     caught = { ...createPokemon(foe.speciesId, { level: foe.level, shiny: foe.shiny, ivs: foe.ivs, ball: ball ?? undefined }), exp: expForLevel(species.growthRate, foe.level), moves: foe.moves.map((slot) => slot.name) };
     const stored = capture(state, caught);
-    if (typeof stored === 'string') { problem = stored; caught = null; } else state = stored;
+    if (typeof stored === 'string') { problem = stored; caught = null; } else { state = stored; caughtAll.push(caught); }
   }
   const levels = saveExperience ? battle.player.team.filter((c) => c.ref && !c.capped && c.level > (before.get(c.ref) ?? c.level)).map((c) => ({ name: c.name, level: c.level })) : [];
   const gameOver = permadeath && pokemonCount(state.collection) === 0;
   const fainted = battle.player.team.filter((c) => c.ref && c.hp <= 0).map((c) => c.name);
-  return { state, outcome: { result, money, caught, levels, problem, lost: dead.map((c) => c.name), fainted, gameOver } };
+  return { state, outcome: { result, money, caught, caughtAll, levels, problem, lost: dead.map((c) => c.name), fainted, gameOver } };
 }
 
 // ---------- Captura direta (sem batalha) ----------
@@ -364,6 +405,7 @@ export function autoRequest(state: BattleState): BattleRequest | null {
   const foe = activeOf(state, 'foe');
   if (state.phase === 'choose') {
     const me = activeOf(state, 'player');
+    if (state.horde) return hordeAutoRequest(state, me);
     const options = battleAi.scoreMoves(me, foe, battleContext).map(({ slot, score }) => ({
       slot, score, attack: battleContext.moves.get(me.moves[slot]!.name)?.category !== 'status',
     }));
@@ -376,4 +418,25 @@ export function autoRequest(state: BattleState): BattleRequest | null {
     return to < 0 ? null : { kind: 'switch', to };
   }
   return null;
+}
+
+/**
+ * Na horda a auto-batalha pesa cada golpe contra cada adversário: o golpe em área vale a soma dos alvos (com o dano reduzido
+ * de cada um) e o de alvo único vai no adversário em que rende mais, dando prioridade a quem ele derruba.
+ */
+function hordeAutoRequest(state: BattleState, me: Combatant): BattleRequest {
+  const foes = aliveFoes(state);
+  const perFoe = foes.map((index) => ({
+    index, scores: new Map(battleAi.scoreMoves(me, state.foe.team[index]!, battleContext).map(({ slot, score }) => [slot, score])),
+  }));
+  const slots = [...(perFoe[0]?.scores.keys() ?? [])];
+  const options = slots.map((slot) => {
+    const move = battleContext.moves.get(me.moves[slot]!.name);
+    const best = perFoe.reduce((top, entry) => ((entry.scores.get(slot) ?? 0) > (top.scores.get(slot) ?? 0) ? entry : top), perFoe[0]!);
+    const area = move !== undefined && isAreaMove(move) && foes.length > 1;
+    const total = perFoe.reduce((sum, entry) => sum + (entry.scores.get(slot) ?? 0), 0);
+    return { slot, target: best.index, attack: move?.category !== 'status', score: area ? total * (move.category === 'status' ? 1 : AREA_DAMAGE) : best.scores.get(slot) ?? 0 };
+  });
+  const pick = pickAutoOption(options);
+  return { kind: 'move', slot: pick?.slot ?? -1, target: pick?.target ?? foes[0] };
 }

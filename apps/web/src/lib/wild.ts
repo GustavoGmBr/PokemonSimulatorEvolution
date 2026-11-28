@@ -3,6 +3,7 @@ import { wildMaps, wildMapIds, type WildMapId } from '@pokesim-evolution/data/wi
 import { getWildSpecies, wildSpecies, type WildSpecies } from '@pokesim-evolution/data/wild-species';
 import challenges from '@pokesim-evolution/data/challenges';
 import { createUid } from './pokemon-collection';
+import { hordeMaxSize, hordeMinSize, hordeSize, type HordeOdds } from './horde';
 import { perfectChance, perfectIvs, readIvs, rollIvs, starThresholds, type Ivs } from './ivs';
 
 /** Quantos Pokémon aparecem ao todo em cada mapa, e quantos podem estar soltos ao mesmo tempo. */
@@ -11,10 +12,17 @@ const initialCapacity = 4;
 const maximumCapacity = 15;
 const maximumSpawns = maximumCapacity * 2;
 
-export function wildPopulation(progress: { cycle: number; challenges: { defeated: readonly string[] } }) {
-  const continuous = progress.cycle > 0;
-  const completed = continuous ? challenges.regions.length : challenges.regions.filter(({ circuits }) =>
+type CompletionProgress = { cycle: number; challenges: { defeated: readonly string[] } };
+
+/** Gerações concluídas: as regiões em que todos os campeões foram vencidos (no Novo Jogo+, todas). */
+export function completedGenerations(progress: CompletionProgress) {
+  return progress.cycle > 0 ? challenges.regions.length : challenges.regions.filter(({ circuits }) =>
     circuits.every(({ champion }) => progress.challenges.defeated.includes(champion.slug))).length;
+}
+
+export function wildPopulation(progress: CompletionProgress) {
+  const continuous = progress.cycle > 0;
+  const completed = completedGenerations(progress);
   const capacity = initialCapacity + Math.round((maximumCapacity - initialCapacity) * completed / challenges.regions.length);
   return { continuous, capacity, total: capacity * 2 };
 }
@@ -24,8 +32,28 @@ export type WildPopulation = ReturnType<typeof wildPopulation>;
 export const shinyChance = 1 / 4096;
 
 export type Random = () => number;
-/** Um Pokémon solto no mapa. A posição não é salva: ele anda por conta própria. */
-export type WildEncounter = { id: string; species: number; level: number; shiny: boolean; ivs: Ivs };
+/**
+ * Um Pokémon solto no mapa. A posição não é salva: ele anda por conta própria.
+ * Em uma horda, `horde` traz o nível de cada membro (todos da mesma espécie): brilho e IVs só são sorteados quando a
+ * batalha começa, então `shiny` e `ivs` ficam neutros e nada disso aparece no mapa.
+ */
+export type WildEncounter = { id: string; species: number; level: number; shiny: boolean; ivs: Ivs; horde?: number[] };
+
+// ---------- Hordas ----------
+
+export { hordeCharm, hordeCharmPrice, hordeOdds, hordeSize, type HordeOdds } from './horde';
+
+/** Sorteia o brilho e os IVs de cada membro de uma horda: acontece só quando a batalha começa, nada disso aparece no mapa. */
+export function rollHorde(encounter: WildEncounter, random: Random = Math.random): WildEncounter[] {
+  return (encounter.horde ?? [encounter.level]).map((level, index) => ({
+    id: `${encounter.id}:${index}`, species: encounter.species, level,
+    shiny: random() < shinyChance, ivs: random() < perfectChance ? perfectIvs() : rollIvs(random),
+  }));
+}
+
+const noIvs: Ivs = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+
+
 /**
  * O mapa sorteado: `pending` são os Pokémon que ainda vão aparecer; acabando todos, é preciso procurar outro mapa.
  * `minLevel`/`maxLevel` e `chosenMap` guardam a configuração da procura (`chosenMap` nulo = mapa sorteado).
@@ -102,6 +130,12 @@ function stageOf(species: WildSpecies, unlocked: readonly number[]) {
   }).length;
 }
 
+/** Todas as espécies que podem aparecer agora no mapa (qualquer tipo de mapa): regiões liberadas e estágio permitido pelas insígnias. */
+export function spawnableSpecies(badges: number, unlocked: readonly number[] = unlockedRegions()) {
+  const limit = maxStage(badges);
+  return wildSpecies.filter((species) => !species.special && unlocked.includes(species.region) && stageOf(species, unlocked) <= limit);
+}
+
 export function eligibleSpecies(map: WildMapId, region: number, badges: number, unlocked: readonly number[] = unlockedRegions()) {
   const types = wildMaps.find((entry) => entry.id === map)!.types as readonly string[];
   const limit = maxStage(badges);
@@ -113,7 +147,7 @@ function pick<T>(items: readonly T[], random: Random): T {
   return items[Math.floor(random() * items.length)]!;
 }
 
-function sorteio(board: WildBoard, badges: number, random: Random, teamLevel?: number): WildEncounter | null {
+function sorteio(board: WildBoard, badges: number, random: Random, teamLevel?: number, horde: HordeOdds | null = null): WildEncounter | null {
   const { map, region, encounters: alive } = board;
   const pool = eligibleSpecies(map, region, badges);
   if (!pool.length) return null;
@@ -122,10 +156,15 @@ function sorteio(board: WildBoard, badges: number, random: Random, teamLevel?: n
   const fresh = pool.filter((species) => !alive.some((encounter) => encounter.species === species.id));
   const species = pick(fresh.length ? fresh : pool, random);
   const [low, high] = clampLevels(board.minLevel, board.maxLevel, badges);
+  const levelOf = () => teamLevel ?? low + Math.floor(random() * (high - low + 1));
+  if (horde && random() < horde.chance) {
+    const levels = Array.from({ length: hordeSize(horde, random) }, levelOf);
+    return { id: createUid(), species: species.id, level: Math.max(...levels), shiny: false, ivs: { ...noIvs }, horde: levels };
+  }
   return {
     id: createUid(),
     species: species.id,
-    level: teamLevel ?? low + Math.floor(random() * (high - low + 1)),
+    level: levelOf(),
     shiny: random() < shinyChance,
     ivs: random() < perfectChance ? perfectIvs() : rollIvs(random),
   };
@@ -168,9 +207,9 @@ export function canSpawn(board: WildBoard, population: WildPopulation) {
 }
 
 /** No Novo Jogo+, a média da equipe define o nível e cada vaga pode ser reposta indefinidamente. */
-export function spawnNext(board: WildBoard, badges: number, population: WildPopulation, teamLevel?: number, random: Random = Math.random): WildBoard | null {
+export function spawnNext(board: WildBoard, badges: number, population: WildPopulation, teamLevel?: number, random: Random = Math.random, horde: HordeOdds | null = null): WildBoard | null {
   if (!canSpawn(board, population)) return null;
-  const encounter = sorteio(board, badges, random, teamLevel);
+  const encounter = sorteio(board, badges, random, teamLevel, horde);
   if (!encounter) return null;
   return {
     ...board, total: Math.max(board.total, population.total),
@@ -210,6 +249,12 @@ export function readWild(value: unknown): WildBoard | null {
     if (typeof encounterId !== 'string' || !encounterId || ids.has(encounterId) || typeof species !== 'number' ||
         !getWildSpecies(species) || typeof level !== 'number' || !Number.isSafeInteger(level)) return [];
     ids.add(encounterId);
+    const levels = Array.isArray(entry.horde)
+      ? entry.horde.filter((member): member is number => typeof member === 'number' && Number.isSafeInteger(member))
+        .map((member) => Math.min(100, Math.max(1, member))).slice(0, hordeMaxSize) : [];
+    if (levels.length >= hordeMinSize) {
+      return [{ id: encounterId, species, level: Math.max(...levels), shiny: false, ivs: { ...noIvs }, horde: levels }];
+    }
     return [{
       id: encounterId, species, level: Math.min(100, Math.max(1, level)), shiny: entry.shiny === true,
       ivs: readIvs(entry.ivs, encounterId),

@@ -196,3 +196,10 @@
 .wild-actor .wild-body { transition: opacity .55s ease, scale .55s ease, translate .6s ease; transform-origin: 50% 45%; }
 .wild-actor[data-capture="absorbed"] .wild-body { opacity: 0; scale: .12; }
 .wild-actor[data-capture="fled"] .wild-body { opacity: 0; scale: .7; translate: 0 -30%; }
+
+/* Horda no mapa: o Pokémon da frente e cópias menores atrás (brilho e IVs só saem na batalha). */
+.wild-echo { position: absolute; left: 50%; bottom: 0; z-index: -1; width: 74%; opacity: .92; --dx: -46%; --dy: 0%; translate: calc(-50% + var(--dx)) var(--dy); }
+.wild-echo[data-slot="1"] { --dx: 46%; }
+.wild-echo[data-slot="2"] { --dx: -22%; --dy: -26%; }
+.wild-echo[data-slot="3"] { --dx: 22%; --dy: -26%; }
+.wild-tag[data-horde="true"] { background: #7c2d12; }

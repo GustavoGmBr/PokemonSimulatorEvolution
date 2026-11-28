@@ -1,3 +1,17 @@
+## Pokémon Simulator Evolution 1.6.0
+
+- **Hordas nos Selvagens:** novo **Amuleto de Horda** na Loja (aba Amuletos, ₽ 35.000). Com ele na mochila, 10% dos Pokémon que aparecem no mapa vêm em horda de 2 ou 3 da mesma espécie. Cada geração concluída soma 5% à chance (até 55%), a cada 3 gerações cabe mais um Pokémon (até 5) e, com 5 gerações, o mínimo sobe para 3. A configuração dos Selvagens mostra a chance atual.
+- **Brilho e IVs só na batalha:** no mapa a horda aparece como um grupo ("Horda ×3") sem brilho nem estrelas; ao começar a batalha cada membro sorteia o seu brilho e os seus IVs.
+- **Batalha em horda:** todos os adversários atacam a cada turno. Escolha o alvo clicando no Pokémon na arena ou na lista abaixo dela. A Mochila captura o alvo escolhido e a luta continua com os outros; cada derrotado rende XP e dinheiro. Fugir mantém a horda no mapa, a menos que você já tenha capturado algum membro. Hordas não podem ser capturadas direto, sem batalha.
+- **Golpes em área:** os golpes que atingem todos os adversários (Surf, Rock Slide, Swift, Growl…) agora acertam toda a horda, com 75% do dano em cada alvo, e trazem a etiqueta **(área)** na batalha e na lista de golpes do Pokémon. A auto-batalha também pesa o golpe em área e o melhor alvo.
+- **Auto-batalha:** o atalho Ctrl + ; passa a funcionar também durante a batalha.
+- **Batalha nos Selvagens:** a tela de batalha agora fica acima dos botões do mapa.
+- **Missões renovadas:** a tela de Missões ganhou abas **Rápidas** (2 horas, como antes, agora com 10 metas), **Diárias** (renovam à meia-noite) e **Semanais** (renovam na segunda-feira), cada uma com um bônus por resgatar todas as metas, e a aba **Conquistas**, de longo prazo e sem renovação, com cinco níveis (ou mais) por conquista.
+- **Metas que crescem com você:** as metas e os prêmios em dinheiro e fichas aumentam com o seu progresso (insígnias e gerações concluídas), e as bolas e os doces dos prêmios melhoram de qualidade (Ultra Bola a partir da 5ª insígnia; Doce EXP M, G e GG mais adiante).
+- **Novos tipos de missão:** derrotar ou capturar Pokémon de um **tipo** específico, derrotar ou capturar uma **espécie** específica, capturar Pokémon com **1★ ou 2★** nos IVs, **evoluir** Pokémon e, com o Amuleto de Horda, **vencer hordas** e **usar golpes em área**. Tipos, espécies e gerações sorteados vêm só do que já aparece nos mapas (gerações liberadas e estágios de evolução permitidos pelas insígnias).
+- **Conquistas:** derrotar e capturar Pokémon, brilhantes, 2★ e 3★, evoluções, treinadores, torneios, chefes, hordas, golpes em área, espécies na Pokédex e tipos diferentes capturados. O progresso conta a partir desta versão (as capturas antigas já valem para a Pokédex e os tipos).
+- **Chefes** agora contam como vitória em missões de chefe, e os Pokémon adicionados pelo botão de teste do PC não contam mais nas missões.
+
 ## Pokémon Simulator Evolution 1.5.0
 
 - **Auto-batalha:** nova opção em **Opções → Auto-batalha**, que também liga e desliga com **Ctrl + ;** (a tecla pode ser trocada em Opções → Controles) ou pelo botão "Auto-batalha" no topo da batalha, a qualquer momento. Ligada, o jogo escolhe o golpe de cada turno entre os ataques do seu Pokémon, pela vantagem de tipo e pelo dano esperado (efetividade, STAB, precisão e golpes em sequência), dando preferência ao golpe que derruba o adversário. Quando um Pokémon cai, entra o melhor confronto. Ela não captura, não usa itens e não foge.
