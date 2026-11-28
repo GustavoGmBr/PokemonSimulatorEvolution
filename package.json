@@ -1,6 +1,6 @@
 {
   "name": "pokemon-simulator-evolution",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "private": true,
   "type": "module",
   "workspaces": [

@@ -197,3 +197,20 @@ test('as metas da mesma faixa não repetem tipo nem espécie', () => {
     assert.equal(new Set(keys).size, keys.length);
   }
 });
+
+test('o corte de 60% vale para metas e bônus, e quadros antigos são convertidos ao ler', () => {
+  const fresh = generateBoard('daily', 3, profile(0));
+  assert.equal(fresh.scaled, true);
+  assert.equal(fresh.goals[0]!.reward.money, 480); // (1200 + 400 * 0) * 0,4
+  assert.equal(fresh.goals[0]!.reward.chips, 240);
+  assert.equal(generateBoard('quick', 3, profile(0)).goals[0]!.reward.money, 40);
+  const old = JSON.parse(JSON.stringify(fresh));
+  delete old.scaled;
+  old.goals[0].reward.money = 1200; old.goals[0].reward.chips = 600; old.bonus.money = 25000; old.bonus.chips = 0;
+  const read = readMissionState({ daily: old, lifetime: {} })!.daily!;
+  assert.equal(read.scaled, true);
+  assert.equal(read.goals[0]!.reward.money, 480);
+  assert.equal(read.goals[0]!.reward.chips, 240);
+  assert.equal(read.bonus.money, 10000);
+  assert.deepEqual(readMissionState({ daily: JSON.parse(JSON.stringify(fresh)), lifetime: {} })!.daily, fresh);
+});

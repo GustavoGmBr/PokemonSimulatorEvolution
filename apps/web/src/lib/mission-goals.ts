@@ -33,7 +33,7 @@ export function tierEnd(tier: Tier, period: number, offset = 0) {
 export type Filter = { type?: string; species?: number; region?: number; shiny?: true; stars?: number };
 export type Reward = { money: number; chips: number; items: [string, number][] };
 export type Goal = { kind: MissionKind; filter?: Filter; distinct?: true; target: number; reward: Reward };
-export type Board = { period: number; goals: Goal[]; counts: number[]; seen: number[][]; claimed: number[]; bonus: Reward };
+export type Board = { /** presente quando o dinheiro e as fichas já estão com o corte de 60% */ scaled?: true; period: number; goals: Goal[]; counts: number[]; seen: number[][]; claimed: number[]; bonus: Reward };
 export type Lifetime = { counts: Record<string, number>; claimed: Record<string, number> };
 export type MissionState = { quick?: Board; daily?: Board; weekly?: Board; lifetime: Lifetime };
 
@@ -127,7 +127,9 @@ const candyFor = (progress: number) => progress < 3 ? 'exp-candy-p' : progress <
 const ballFor = (progress: number) => progress >= 5 ? 'ultra-ball' : 'great-ball';
 /** Quanto os prêmios em dinheiro e fichas crescem com o progresso (insígnias + gerações). */
 export const rewardGrowth = (progress: number) => 1 + progress * 0.25;
-const scale = (value: number, progress: number) => Math.round(value * rewardGrowth(progress));
+/** Dinheiro e fichas das missões periódicas valem 40% do valor base (corte de 60%). */
+export const payoutShare = 0.4;
+const scale = (value: number, progress: number) => Math.round(value * rewardGrowth(progress) * payoutShare);
 
 function slotReward(tier: Tier, slot: number, kind: MissionKind, progress: number, random: () => number): Reward {
   const thing = kind === 'catch' || kind === 'trainer' ? ballFor(progress) : candyFor(progress);
@@ -184,7 +186,7 @@ export function generateBoard(tier: Tier, period: number, profile: Profile): Boa
     return { kind: template.kind, ...(filter ? { filter } : {}), ...(template.distinct ? { distinct: true as const } : {}), target,
       reward: slotReward(tier, slot, template.kind, progress, random) };
   });
-  return { period, goals, counts: goals.map(() => 0), seen: goals.map(() => []), claimed: [], bonus: bonusReward(tier, progress, random) };
+  return { scaled: true, period, goals, counts: goals.map(() => 0), seen: goals.map(() => []), claimed: [], bonus: bonusReward(tier, progress, random) };
 }
 
 // ---------- descrição ----------
@@ -316,7 +318,11 @@ function readBoard(value: unknown): Board | undefined {
   });
   const claimed = [...new Set((value.claimed as unknown[]).filter((index): index is number => integer(index, 0, valid.length)))];
   const bonus = readReward(value.bonus);
-  return bonus ? { period: value.period, goals: valid, counts, seen, claimed, bonus } : undefined;
+  if (!bonus) return;
+  // Quadros salvos antes do corte de 60% mantêm o progresso, mas passam a pagar o valor novo.
+  if (value.scaled === true) return { scaled: true, period: value.period, goals: valid, counts, seen, claimed, bonus };
+  const cut = (reward: Reward): Reward => ({ ...reward, money: Math.round(reward.money * payoutShare), chips: Math.round(reward.chips * payoutShare) });
+  return { scaled: true, period: value.period, goals: valid.map((goal) => ({ ...goal, reward: cut(goal.reward) })), counts, seen, claimed, bonus: cut(bonus) };
 }
 
 function readLifetime(value: unknown): Lifetime {

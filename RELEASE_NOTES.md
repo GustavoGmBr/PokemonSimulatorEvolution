@@ -1,3 +1,7 @@
+## Pokémon Simulator Evolution 1.6.2
+
+- **Missões com 60% menos dinheiro e fichas:** como agora há mais missões, o dinheiro e as fichas das metas e do bônus de conclusão das faixas Rápidas, Diárias e Semanais passam a valer 40% do que valiam. Os itens dos prêmios e as conquistas de longo prazo não mudaram. Quadros já abertos mantêm o progresso e passam a pagar o valor novo.
+
 ## Pokémon Simulator Evolution 1.6.1
 
 - **Mais missões:** as **Diárias** dobraram (de 7 para 14) e as **Semanais** também (de 9 para 18). Com o Amuleto de Horda entram metas extras de horda e golpes em área (15 diárias e 22 semanais). Há mais metas de tipo e de espécie, e cada prêmio foi ajustado para a faixa maior não inflar o ganho.
