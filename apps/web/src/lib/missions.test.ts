@@ -19,8 +19,10 @@ test('o mesmo período e perfil geram sempre as mesmas metas', () => {
 
 test('cada faixa tem a quantidade esperada de metas e o amuleto abre as de horda e área', () => {
   assert.equal(generateBoard('quick', 5, profile(0)).goals.length, 10);
-  assert.equal(generateBoard('daily', 5, profile(0)).goals.length, 7);
-  assert.equal(generateBoard('weekly', 5, profile(0)).goals.length, 9);
+  assert.equal(generateBoard('daily', 5, profile(0)).goals.length, 14);
+  assert.equal(generateBoard('weekly', 5, profile(0)).goals.length, 18);
+  assert.equal(generateBoard('daily', 5, profile(0, true)).goals.length, 15);
+  assert.equal(generateBoard('weekly', 5, profile(0, true)).goals.length, 22);
   const kinds = (charm: boolean, tier: 'quick' | 'daily' | 'weekly') => generateBoard(tier, 5, profile(2, charm)).goals.map((goal) => goal.kind);
   assert.ok(!kinds(false, 'weekly').some((kind) => kind === 'horde' || kind === 'area'));
   assert.ok(kinds(true, 'weekly').includes('horde') && kinds(true, 'weekly').includes('area'));
@@ -178,4 +180,20 @@ test('o save é lido com segurança: dados ruins são descartados e o formato an
   assert.equal(read.quick?.counts[0], 0);
   assert.deepEqual(read.quick?.claimed, [0]);
   assert.deepEqual(read.lifetime.counts, { catch: 7 });
+});
+
+test('o bônus de completar a faixa não dá fichas, só dinheiro e itens', () => {
+  for (const tier of ['quick', 'daily', 'weekly'] as const) for (const progress of [0, 6, 14]) {
+    const { bonus } = generateBoard(tier, 11, profile(progress));
+    assert.equal(bonus.chips, 0);
+    assert.ok(bonus.money > 0 && bonus.items.length >= 2);
+  }
+});
+
+test('as metas da mesma faixa não repetem tipo nem espécie', () => {
+  for (let period = 0; period < 100; period += 1) for (const tier of ['daily', 'weekly'] as const) {
+    const keys = generateBoard(tier, period, profile(3, true)).goals.filter((goal) => goal.filter?.species || goal.filter?.type)
+      .map((goal) => `${goal.kind}${JSON.stringify(goal.filter)}`);
+    assert.equal(new Set(keys).size, keys.length);
+  }
 });

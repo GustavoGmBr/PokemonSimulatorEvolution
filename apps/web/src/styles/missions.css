@@ -17,3 +17,6 @@
 .mission-level { font-size: .75rem; font-weight: 700; color: var(--muted-foreground); }
 .mission-reward { display: flex; flex-wrap: wrap; gap: .25rem .6rem; font-size: .8rem; list-style: none; padding: 0; margin: 0; }
 .mission-item { display: inline-flex; align-items: center; gap: .2rem; }
+.mission-group { display: grid; gap: .5rem; }
+.mission-group-title { display: flex; align-items: baseline; gap: .5rem; font-size: .8rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--muted-foreground); }
+.mission-group-title span { font-weight: 600; }

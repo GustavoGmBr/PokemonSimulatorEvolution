@@ -1,3 +1,9 @@
+## Pokémon Simulator Evolution 1.6.1
+
+- **Mais missões:** as **Diárias** dobraram (de 7 para 14) e as **Semanais** também (de 9 para 18). Com o Amuleto de Horda entram metas extras de horda e golpes em área (15 diárias e 22 semanais). Há mais metas de tipo e de espécie, e cada prêmio foi ajustado para a faixa maior não inflar o ganho.
+- **Missões separadas por categoria:** em cada faixa as metas aparecem agrupadas em Captura, Combate, Hordas e golpes em área e Evolução, cada grupo mostrando quantas já foram resgatadas.
+- **Novo bônus de conclusão:** o bônus por resgatar todas as metas de uma faixa não dá mais fichas de cassino, só dinheiro e itens (Doce Raro, bolas e, nas diárias e semanais, essências de IV; nas semanais também Reviver Máximo). Os prêmios das metas e das conquistas continuam iguais.
+
 ## Pokémon Simulator Evolution 1.6.0
 
 - **Hordas nos Selvagens:** novo **Amuleto de Horda** na Loja (aba Amuletos, ₽ 35.000). Com ele na mochila, 10% dos Pokémon que aparecem no mapa vêm em horda de 2 ou 3 da mesma espécie. Cada geração concluída soma 5% à chance (até 55%), a cada 3 gerações cabe mais um Pokémon (até 5) e, com 5 gerações, o mínimo sobe para 3. A configuração dos Selvagens mostra a chance atual.

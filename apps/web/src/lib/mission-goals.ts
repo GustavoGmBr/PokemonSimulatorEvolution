@@ -104,17 +104,21 @@ const slots: Record<Tier, (charm: boolean) => Template[]> = {
     { kind: 'cup', base: 1, grow: 0 },
   ],
   daily: (charm) => [
-    { kind: 'defeat', base: 10 }, { kind: 'catch', base: 3 }, { kind: 'defeat', base: 6, pick: 'type' },
-    { kind: 'catch', base: 2, pick: 'type' }, { kind: 'catch', base: 2, grow: 0.04, stars: 1 },
-    charm ? { kind: 'horde', base: 3, grow: 0.06 } : { kind: 'trainer', base: 4 },
-    { kind: 'catch', base: 1, pick: 'species', grow: 0.02 },
+    { kind: 'defeat', base: 8 }, { kind: 'catch', base: 3 }, { kind: 'defeat', base: 5, pick: 'type' }, { kind: 'catch', base: 2, pick: 'type' },
+    { kind: 'trainer', base: 2 }, { kind: 'defeat', base: 14 }, { kind: 'catch', base: 2, grow: 0.04, stars: 1 },
+    { kind: 'defeat', base: 8, pick: 'type' }, { kind: 'catch', base: 5, distinct: true }, { kind: 'catch', base: 3, pick: 'type' },
+    { kind: 'defeat', base: 2, pick: 'species', grow: 0.04 }, { kind: 'trainer', base: 5 }, { kind: 'catch', base: 1, pick: 'species', grow: 0.02 },
+    ...(charm ? [{ kind: 'horde' as const, base: 3, grow: 0.06 }, { kind: 'area' as const, base: 15, grow: 0.1 }] : [{ kind: 'cup' as const, base: 1, grow: 0 }]),
   ],
   weekly: (charm) => [
-    { kind: 'defeat', base: 60 }, { kind: 'catch', base: 12, distinct: true }, { kind: 'defeat', base: 25, pick: 'type' },
-    { kind: 'catch', base: 8, pick: 'type' }, { kind: 'trainer', base: 15 }, { kind: 'evolve', base: 3, grow: 0.03 },
-    { kind: 'catch', base: 2, grow: 0.03, stars: 2 }, { kind: 'catch', base: 2, pick: 'species', grow: 0.02 },
-    { kind: 'cup', base: 2, grow: 0 },
-    ...(charm ? [{ kind: 'horde' as const, base: 10, grow: 0.08 }, { kind: 'area' as const, base: 40, grow: 0.1 }] : []),
+    { kind: 'defeat', base: 40 }, { kind: 'catch', base: 8, distinct: true }, { kind: 'defeat', base: 15, pick: 'type' }, { kind: 'catch', base: 5, pick: 'type' },
+    { kind: 'trainer', base: 8 }, { kind: 'defeat', base: 60 }, { kind: 'catch', base: 20 }, { kind: 'evolve', base: 2, grow: 0.03 },
+    { kind: 'defeat', base: 25, pick: 'type' }, { kind: 'catch', base: 8, pick: 'type' }, { kind: 'catch', base: 12, distinct: true },
+    { kind: 'trainer', base: 15 }, { kind: 'catch', base: 2, grow: 0.03, stars: 2 }, { kind: 'catch', base: 2, pick: 'species', grow: 0.02 },
+    { kind: 'defeat', base: 5, pick: 'species', grow: 0.04 }, { kind: 'evolve', base: 4, grow: 0.03 }, { kind: 'cup', base: 2, grow: 0 },
+    { kind: 'boss', base: 2, grow: 0.03 },
+    ...(charm ? [{ kind: 'horde' as const, base: 8, grow: 0.08 }, { kind: 'horde' as const, base: 20, grow: 0.08 },
+      { kind: 'area' as const, base: 40, grow: 0.1 }, { kind: 'area' as const, base: 120, grow: 0.1 }] : []),
   ],
 };
 
@@ -133,19 +137,21 @@ function slotReward(tier: Tier, slot: number, kind: MissionKind, progress: numbe
   const essence = essences[Math.floor(random() * 6)]!;
   if (tier === 'daily') {
     const items: [string, number][] = [[thing, 2], [essence, 1]];
-    if (slot >= 4) items.push(['rare-candy', 1]);
-    return { money: scale(1200 + 600 * slot, progress), chips: scale(600 + 300 * slot, progress), items };
+    if (slot >= 6) items.push(['rare-candy', 1]);
+    return { money: scale(1200 + 400 * slot, progress), chips: scale(600 + 200 * slot, progress), items };
   }
-  return { money: scale(8000 + 3500 * slot, progress), chips: scale(4000 + 1500 * slot, progress),
-    items: [[thing, 3], [essence, 2], ['rare-candy', slot >= 5 ? 2 : 1]] };
+  return { money: scale(8000 + 2000 * slot, progress), chips: scale(4000 + 1000 * slot, progress),
+    items: [[thing, 3], [essence, 2], ['rare-candy', slot >= 9 ? 2 : 1]] };
 }
 
+/** O bônus de completar a faixa dá só dinheiro e itens (sem fichas de cassino). */
 function bonusReward(tier: Tier, progress: number, random: () => number): Reward {
   const essence = essences[Math.floor(random() * 6)]!;
-  if (tier === 'quick') return { money: scale(2500, progress), chips: scale(2500, progress), items: [['rare-candy', 1]] };
-  if (tier === 'daily') return { money: scale(15000, progress), chips: scale(8000, progress), items: [['rare-candy', 3], [essence, 2]] };
+  const ball = ballFor(progress);
+  if (tier === 'quick') return { money: scale(4000, progress), chips: 0, items: [['rare-candy', 1], [ball, 2]] };
+  if (tier === 'daily') return { money: scale(25000, progress), chips: 0, items: [['rare-candy', 4], [essence, 3], [ball, 5]] };
   const second = essences[(essences.indexOf(essence) + 1 + Math.floor(random() * 5)) % 6]!;
-  return { money: scale(80000, progress), chips: scale(40000, progress), items: [['rare-candy', 8], [essence, 3], [second, 2], ['max-revive', 3]] };
+  return { money: scale(140000, progress), chips: 0, items: [['rare-candy', 12], [essence, 4], [second, 3], [ball, 10], ['max-revive', 3]] };
 }
 
 const seedOf = (tier: Tier, period: number) => (Math.imul(period | 0, 2654435761) ^ (tiers.indexOf(tier) + 1) * 40503) >>> 0;
